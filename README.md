@@ -1,65 +1,89 @@
-# 00 - llama.cpp 是什么
+# llama.cpp-101
 
-[llama.cpp](https://github.com/ggerganov/llama.cpp) 是一个用 **C/C++** 编写的、以**纯 CPU** 为目标的大语言模型（LLM）推理引擎。它由 Georgi Gerganov 于 2023 年 3 月发起，最初是为了在普通 MacBook 上跑 Meta 的 LLaMA 模型，随后发展成覆盖面最广的开源 LLM 运行时之一：不仅能跑在 CPU 上，也能跑在 GPU（CUDA / Metal / Vulkan / SYCL 等）上，被大量桌面应用和嵌入式环境采用。
+**简体中文 · [English](#english)**
 
-本项目（llama.cpp-101）要做的，就是**从零讲清楚它的底层原理**，抽丝剥茧简单实现一个 llama.cpp-server。
+从零讲透 [llama.cpp](https://github.com/ggerganov/llama.cpp) 底层原理的中文教程项目。不教你怎么"用" llama.cpp，而是按它的真实分层，自己动手写简化实现，一步步读懂 GGUF、模型加载与推理。
 
-## 一、它解决什么问题
-
-一个训练好的 LLM，本质是一堆巨大的**权重张量（tensor）**加上**分词器（tokenizer）、超参数、对话模板**。要在本地跑起来，面临着两个核心问题：
-
-1. **权重怎么存、怎么读**：几百 GB 的原始权重必须量化压缩，并且要能被快速加载。→ 这就是 **GGUF** 格式（上一章 / 01 章的主题）。
-2. **推理怎么算**：如何把加载的权重做前向计算，一步步生成 token。→ 这就是 **ggml** 计算图和推理引擎。
-
-llama.cpp 的架构可以概括成三个从上到下的层次：
-
-```
-┌──────────────────────────────────────────────┐
-│  应用层   main / server / 各 examples        │   命令行、HTTP 服务、聊天 UI
-├──────────────────────────────────────────────┤
-│  模型层   src/llama-model-loader 读 GGUF     │   加载权重、建 tensor、管理 context
-├──────────────────────────────────────────────┤
-│  计算层   ggml（张量运算 + 计算图 + 量化）    │   核心矩阵运算、自动微分、KV 缓存
-└──────────────────────────────────────────────┘
-```
-
-## 二、仓库结构一眼看（以 `llama.cpp/` 内实际代码为准）
-
-在 `llama.cpp/` 目录下面，最值得关注的几个部分：
-
-| 路径                  | 作用                                                                            |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `include/llama.h`     | 对外 C API：加载模型、初始化 context、分词、采样（这是"模型层 + 应用层"的边界） |
-| `src/`                | 模型加载（`src/llama-model-loader.*`）、推理调度、采样、KV 缓存等实现           |
-| `ggml/`               | **ggml 张量库**——底层计算图、张量运算、CPU 内核、量化格式                       |
-| `ggml/include/gguf.h` | **GGUF 文件格式**定义 + 读写 API（01 章的核心对象）                             |
-| `examples/`           | 各种可执行 demo：`main`、`server`、`simple`、`embedding`、`llama-eval` 等       |
-| `common/`             | examples 共用的辅助代码（命令行解析、采样封装等）                               |
-| `tests/`              | 自定义测试（无框架，`test_*.cpp` 自带 `main`）                                  |
-
-> 大体上：**`ggml` 管"怎么算"，`src/llama.cpp` + `include/llama.h` 管"怎么跑一个模型"，`examples` 管"怎么和用户交互"**。而 GGUF 是这几个层次之间的"模型文件协议"。
-
-## 三、一次推理的流程（后续章节会逐步展开）
-
-以 `examples/main` 为例，跑一次对话大约经历这几步（对应我们后面 01/02/03…… 的分章）：
-
-```
-1. 读 GGUF 文件头 + KV + tensor 元数据   ← 01 章：load + check（只读不建模型）
-2. 校验权重一致性（offset / 大小）       ← 01 章末 / 02 章
-3. 创建 ggml_tensor、映射/加载权重       ← 02 章：接入 ggml
-4. 初始化 llama_context，加载分词器       ← 03 章
-5. 输入文字 → tokenize → 前向计算（prefill）
-6. 采样下一个 token → 更新 KV 缓存（decode）
-7. 反复直到输出结束
-```
-
-## 四、本项目为什么用"从零实现"来讲原理
-
-llama.cpp 本身功能极其庞大（支持几十种量化、多后端、各种加速）。如果直接读它的源码，很容易淹没在细节里。所以这个教程的路线是：
-
-- **不教你"用 llama.cpp"**，而是**按它的真实分层，自己从零写一个尽量小的简化版**，每写一层就对照着读对应的上游源码，把原理讲清楚。
-- 比如 01 章我们自己写一个**不含 ggml 依赖的 GGUF 解析器**，只做 load + check——这和 llama.cpp 里 `gguf_init_from_file` 的"读元数据"阶段是一一对应的。
+*English: a hands-on tutorial that explains llama.cpp's internals from scratch — not how to *use* it, but how it actually works, by re-implementing the layers by hand.*
 
 ---
 
-下一章：**01 - 加载并校验 GGUF**（只读 GGUF，把它的 header、KV、tensor 元数据读进来并做一致性校验，先不碰推理）。
+## 为什么建这个项目？ Why this project?
+
+llama.cpp 功能极其庞大：几十种量化、多后端（CPU/CUDA/Metal/Vulkan）、各种加速路径。直接打开它的源码，很容易淹没在浩如烟海的细节里——不知道从哪读起，也不知道哪些是骨架、哪些是皮毛。
+
+这个项目的出发点很简单：
+
+- **直接读源码门槛太高。** llama.cpp 是生产级 C++，充斥着 mmap、多分片、端序、量化内核等大量"必要的复杂度"，对初学者几乎是不可读的。
+- **用黑盒 API 又等于没懂。** 调 `llama-load-model-from-file` 能跑，但你并不知道 GGUF 到底怎么解析、权重怎么映射进内存、矩阵怎么前向计算。
+
+所以我们换一条路：**按 llama.cpp 的真实分层，自己从零写出一个尽量小的简化版**。每写一层，就对照着读对应的上游源码，把"为什么这么设计"讲清楚。
+
+> 比起"会跑"，我们更在意"讲得清楚原理"。这也是整个项目取舍的准则。
+
+---
+
+## 方法 Methods
+
+1. **从零实现，不抄上游**：每一章自己写最小实现，刻意保持小、只关注该章那一个原理。
+2. **对照真实源码**：每个实现都标注对应 `llama.cpp/` 内的实际源码位置（相对路径），以仓库里真实代码为准，不凭记忆。
+3. **轻量可跑**：用 tinybrainbot（约 200MB，F16）当测试模型，8GB 内存也能跑；测试不引入第三方框架。
+4. **阶段渐进**：严格分阶段，只做当前阶段的事，不越界。
+
+---
+
+## 仓库结构 Layout
+
+```
+llama.cpp-101/
+├── llama.cpp/                     # 上游 llama.cpp 完整 clone（被研究对象，git 忽略）
+├── resources/                     # 测试用模型权重（tinybrainbot 等，git 忽略）
+├── 00-what-is-llama-cpp/          # 00 章：llama.cpp 是什么
+├── 01-load-and-check-gguf/        # 01 章：加载并校验 GGUF（裸 GGUF 解析器）
+└── AGENTS.md                      # 协作者/贡献者须知
+```
+
+> `llama.cpp/`、`resources/`、`.omo/` 均在上传时被忽略；每个章节自带源码、测试与 Makefile。
+
+---
+
+## 阶段路线 Roadmap
+
+按 llama.cpp 的真实分层，把从"读文件"到"跑推理"拆成三阶段：
+
+| 阶段 | 内容 | 对应上游 | 状态 |
+|------|------|----------|:----:|
+| ① `gguf_context` | 只读 GGUF 元数据：header、KV、tensor info、对齐、bounds 校验 | `gguf.cpp::gguf_init_from_file` | ✅ 01 章完成 |
+| ② `llama_model_loader` | 用 tensor 信息建 `ggml_tensor`、换算 offs、mmap/加载权重 | `llama-model-loader` | ⬜ 02 章 |
+| ③ 推理 | 前向计算、采样、KV 缓存 | ggml 计算图 + `llama_context` | ⬜ 03 章 |
+
+快速开始：`cd 01-load-and-check-gguf && make run`（默认解析 tinybrainbot 的 GGUF 并校验）。
+
+---
+
+<a name="english"></a>
+
+## English
+
+**llama.cpp-101** is a tutorial that explains llama.cpp's internals from the ground up. Instead of treating llama.cpp as a black box, we re-implement each of its layers in a minimal form, then read the actual upstream source to understand *why* it's designed that way.
+
+**Why built this way:**
+
+- Reading llama.cpp directly is overwhelming — production C++ with mmap, multi-shard, endianness, quantization kernels. For a beginner it's nearly unreadable.
+- Using the high-level API (`llama_load_model_from_file`) runs, but teaches you nothing about how GGUF is parsed, how weights are mapped into memory, or how the matmul forward pass works.
+
+So we write, by hand, a minimal version of each layer, and annotate where in the real `llama.cpp/` source each piece lives.
+
+**Goals:** minimal, runnable, principle-first. Test model is tinybrainbot (~200MB, F16, runs on 8GB RAM). No third-party test framework.
+
+**Roadmap:**
+
+| Phase | Scope | Upstream counterpart | Status |
+|-------|-------|----------------------|:------:|
+| ① `gguf_context` | Read GGUF metadata: header, KV, tensor info, alignment, bounds checks | `gguf.cpp::gguf_init_from_file` | ✅ Ch.01 |
+| ② `llama_model_loader` | Create `ggml_tensor`, compute offs, mmap/load weights | `llama-model-loader` | ⬜ Ch.02 |
+| ③ Inference | Forward pass, sampling, KV cache | ggml graph + `llama_context` | ⬜ Ch.03 |
+
+**Layout:** `llama.cpp/` (upstream clone, git-ignored), `resources/` (test weights, git-ignored), `00-what-is-llama-cpp/`, `01-load-and-check-gguf/` (completed Ch.01), plus `AGENTS.md` for contributors.
+
+Get started: `cd 01-load-and-check-gguf && make run`.
