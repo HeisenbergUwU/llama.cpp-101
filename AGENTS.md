@@ -4,7 +4,9 @@
 
 ## 目录结构（易踩坑）
 
-- `llama.cpp/` —— **上游 llama.cpp 源码的完整 git 克隆**（被研究对象，不是本项目的代码）。
+> **本仓库根目录自身是一个 git 仓库**（remote `origin` = `github.com:HeisenbergUwU/llama.cpp-101.git`，分支 `master`）。`llama.cpp/` 是**嵌套的独立 git 克隆**，与根仓库互不隶属。提交 / 推送前先 `git status` 确认当前在哪个仓库里。
+
+- `llama.cpp/` —— **上游 llama.cpp 源码的完整 git 克隆**（被研究对象，不是本项目的代码，被根仓库 ignore）。
   - 不要在这个子目录里做“面向项目”的修改或提交；它自带自己的 `AGENTS.md` / `CLAUDE.md`，改代码请先读那两份。
   - remote：`origin` = 上游 ggerganov/llama.cpp，`mine` = 用户自己的 fork（HeisenbergUwU/llama.cpp）。当前在分支 `fix-grammar-readme`。
   - 引用源码时，用相对路径写（例如 `llama.cpp/src/llama.cpp`），不要复制粘贴大段代码进教程，除非为讲解需要。
