@@ -1,0 +1,8 @@
+# 上游 llama.cpp 源码的完整 git 克隆（被研究对象，不纳入本仓库）
+llama.cpp/
+
+# 测试用大文件 / 模型权重（tinybrainbot、Bonsai 等），不上传
+resources/*
+
+# 编排/延续运行机制目录
+.omo/
