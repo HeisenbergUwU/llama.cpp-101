@@ -35,7 +35,7 @@
 | 阶段 | 内容 | 对应上游 | 状态 |
 |------|------|----------|:----:|
 | ① `gguf_context` | 只读 GGUF 元数据：header、KV、tensor info、对齐、bounds 校验 | `gguf.cpp::gguf_init_from_file` | ✅ 01 章完成 |
-| ② `llama_model_loader` | 用 tensor 信息建 `ggml_tensor`、换算 offs、mmap/加载权重 | `llama-model-loader` | ⬜ 02 章 |
+| ② `llama_model` | 建聚合对象 `llama_model`：迷你 ggml + 110 个真实 `ggml_tensor`（池子式内存）+ mmap 零拷贝 | `llama-model.*` + `ggml/src/ggml.c` | ✅ 02 章完成 |
 | ③ 推理 + API | 前向计算、采样、KV 缓存；最后封装成服务 API | ggml 计算图 + `llama_context` + server | ⬜ 03 章 |
 
 ---
@@ -103,7 +103,7 @@ So I created this project and went a different way:
 | Phase | Scope | Upstream reference | Status |
 |-------|-------|--------------------|:------:|
 | ① `gguf_context` | Read GGUF metadata: header, KV, tensor info, alignment, bounds checks | `gguf.cpp::gguf_init_from_file` | ✅ Ch.01 |
-| ② `llama_model_loader` | Create `ggml_tensor`, compute offs, mmap/load weights | `llama-model-loader` | ⬜ Ch.02 |
+| ② `llama_model` | Aggregate `llama_model`: mini ggml + 110 real `ggml_tensor` (pool alloc) + mmap zero-copy | `llama-model.*` + `ggml/src/ggml.c` | ✅ Ch.02 |
 | ③ Inference + API | Forward pass, sampling, KV cache; then expose as a service API | ggml graph + `llama_context` + server | ⬜ Ch.03 |
 
 ### Layout

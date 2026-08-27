@@ -1,10 +1,10 @@
-// gguf-loader.cpp - GGUF 文件裸解析器实现（load + check）
+// gguf.cpp - GGUF 文件裸解析器实现（load + check）
 //
 // 读取逻辑对照上游 llarger.cpp 的 gguf_init_from_file（ggml/src/gguf.cpp），
 // 校验逻辑对照 llama_model_loader::llama_tensor_weight（src/llama-model-loader.h）。
 // 因为是教程实现，省略了端序转换、多分片、mmap 等，聚焦"怎么读 + 怎么查"。
 
-#include "gguf-loader.h"
+#include "gguf.h"
 
 #include <cstring>
 #include <sstream>
@@ -96,7 +96,7 @@ namespace gguf
 
     // 打印 KV 值（标量/字符串/数组），转成可读字符串。
     // 数组最多展开前 20 个元素，多余用 "..." 省略并标注总数，避免大数组（如几万字符串的词表）刷屏。
-    std::string fmt_value(const kv_pair &kv)
+    std::string fmt_value(const gguf_kv &kv)
     {
         if (!kv.is_array())
             return kv.value;
@@ -117,12 +117,12 @@ namespace gguf
     }
 
     // 读取 KV 段的泛型元素（标量或数组）。这里为了通用，把每个元素读成字符串。
-    static bool read_kv_pairs(FILE *f, uint64_t &pos, int64_t n_kv, file_info &info,
+    static bool read_kv_pairs(FILE *f, uint64_t &pos, int64_t n_kv, gguf_context &info,
                               std::string &err, uint64_t file_size)
     {
         for (int64_t i = 0; i < n_kv; ++i)
         {
-            kv_pair kv;
+            gguf_kv kv;
             if (!read_string(f, pos, kv.key, err, "kv key", file_size))
                 return false;
 
@@ -293,12 +293,12 @@ namespace gguf
     }
 
     // 读取张量信息段（对应 gguf.cpp 的 tensor info 循环）
-    static bool read_tensor_info(FILE *f, uint64_t &pos, int64_t n_tensors, file_info &info,
+    static bool read_tensor_info(FILE *f, uint64_t &pos, int64_t n_tensors, gguf_context &info,
                                  std::string &err, uint64_t file_size)
     {
         for (int64_t i = 0; i < n_tensors; ++i)
         {
-            tensor_info t;
+            gguf_tensor_info t;
             if (!read_string(f, pos, t.name, err, "tensor name", file_size))
                 return false;
 
@@ -310,7 +310,7 @@ namespace gguf
             }
 
             // 张量名不能重复
-            for (const auto &e : info.tensors)
+            for (const auto &e : info.info)
             {
                 if (e.name == t.name)
                 {
@@ -391,12 +391,12 @@ namespace gguf
             }
             t.nbytes = (total / tr.blck_size) * tr.type_size;
 
-            info.tensors.push_back(std::move(t));
+            info.info.push_back(std::move(t));
         }
         return true;
     }
 
-    bool load_and_check(const std::string &fname, file_info &info, std::string &err)
+    bool load_and_check(const std::string &fname, gguf_context &info, std::string &err)
     {
         FILE *f = fopen(fname.c_str(), "rb");
         if (!f)
@@ -495,8 +495,8 @@ namespace gguf
         }
 
         // ---- 4. 数据段起点：向上对齐（对应 gguf.cpp 756 行的 GGML_PAD） ----
-        info.data_offset = (info.n_tensors > 0) ? pad(pos, info.alignment) : pos;
-        if (info.data_offset > info.file_size)
+        info.offset = (info.n_tensors > 0) ? pad(pos, info.alignment) : pos;
+        if (info.offset > info.file_size)
         {
             err = "data offset beyond file size";
             fclose(f);
@@ -506,9 +506,9 @@ namespace gguf
         // ---- 5. 数据一致性 check：每个张量的数据都在文件界内 ----
         // 对应 llama-model-loader.h: offs = data_offset + tensor_offset;
         //                       要求 offs + nbytes <= file_size
-        for (const auto &t : info.tensors)
+        for (const auto &t : info.info)
         {
-            uint64_t offs = info.data_offset + t.offset;
+            uint64_t offs = info.offset + t.offset;
             if (offs + (uint64_t)t.nbytes < offs || offs + (uint64_t)t.nbytes > info.file_size)
             {
                 err = "tensor '" + t.name + "' data not within file bounds, model corrupted or incomplete";

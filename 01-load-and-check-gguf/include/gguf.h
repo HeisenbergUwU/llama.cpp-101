@@ -1,4 +1,4 @@
-// gguf-loader.h - GGUF 文件裸解析器（load + check）
+// gguf.h - GGUF 文件裸解析器（load + check）
 //
 // 这是教程 01 章的自包含实现：只解析 GGUF 文件的元数据（header、KV、tensor 信息）
 // 并对它们做一致性校验，不依赖 ggml 的 tensor/context，也不 mmap 权重数据。
@@ -7,6 +7,11 @@
 //   - 文件布局  : ggml/include/gguf.h（头部注释的结构定义）
 //   - 读取顺序  : ggml/src/gguf.cpp（gguf_init_from_file 的实现）
 //   - 越界校验  : src/llama-model-loader.h（llama_tensor_weight 的 bounds 检查）
+//
+// 命名对齐：本文件里的类型名尽量跟上游 llama.cpp 一致——
+//   - gguf_context     对应上游 ggml/src/gguf.cpp 的 struct gguf_context
+//   - gguf_tensor_info 对应上游 ggml/src/gguf.cpp 的 struct gguf_tensor_info
+//   - gguf_kv          对应上游 ggml/src/gguf.cpp 的 struct gguf_kv
 //
 // 阶段边界（与 llama.cpp 真实分层对齐）：
 //   本文件 = 只读元数据（对应 gguf_context 阶段）
@@ -84,8 +89,8 @@ namespace gguf
 
     // ---- 解析结果的中间结构（与 ggml 无关，02 章再用它造 ggml_tensor） ----
 
-    // 一个 KV 键值对
-    struct kv_pair
+    // 一个 KV 键值对（对应上游 ggml/src/gguf.cpp 的 struct gguf_kv）
+    struct gguf_kv
     {
         std::string key;
         int64_t type;                       // gguf_type
@@ -95,8 +100,10 @@ namespace gguf
         bool is_array() const { return type == gguf_type::GGUF_TYPE_ARRAY; }
     };
 
-    // 一个张量的「描述」（只有元数据，没有数据）
-    struct tensor_info
+    // 一个张量的「描述」（只有元数据，没有数据；对应上游 ggml/src/gguf.cpp 的
+    // struct gguf_tensor_info。上游还内嵌了一个 ggml_tensor 作为载体，这里因
+    // 教程不依赖 ggml，改用等价的 ggml-free 字段）
+    struct gguf_tensor_info
     {
         std::string name;
         int64_t n_dims = 0;
@@ -107,25 +114,26 @@ namespace gguf
         int64_t nbytes = 0;
     };
 
-    // 整个 GGUF 文件的解析结果
-    struct file_info
+    // 整个 GGUF 文件的解析结果（对应上游 ggml/src/gguf.cpp 的 struct gguf_context；
+    // 上游的 offset=数据段起点、size=数据段字节数，这里额外保留 file_size 供 bounds 检查）
+    struct gguf_context
     {
         uint32_t version = 0;
         int64_t n_tensors = 0;
         int64_t n_kv = 0;
         uint32_t alignment = GGUF_DEFAULT_ALIGNMENT;
-        uint64_t data_offset = 0; // 数据段起点（对齐后）
-        uint64_t file_size = 0;
+        uint64_t offset = 0;    // 数据段起点（对齐后；对应上游 gguf_context::offset）
+        uint64_t file_size = 0; // 整个文件大小（教程自加，供 bounds 校验）
 
-        std::vector<kv_pair> kv;
-        std::vector<tensor_info> tensors;
+        std::vector<gguf_kv> kv;            // 对应上游 gguf_context::kv
+        std::vector<gguf_tensor_info> info; // 对应上游 gguf_context::info
     };
 
     // ---- 解析入口 ----
     // 成功返回 true，并把结果填进 info；失败返回 false（out 里记录错误信息）。
-    bool load_and_check(const std::string &fname, file_info &info, std::string &err);
+    bool load_and_check(const std::string &fname, gguf_context &info, std::string &err);
 
     // 把 KV 值转成可读字符串（标量/数组），供打印使用。
-    std::string fmt_value(const kv_pair &kv);
+    std::string fmt_value(const gguf_kv &kv);
 
 }

@@ -6,3 +6,5 @@ resources/*
 
 # 编排/延续运行机制目录
 .omo/
+
+AGENTS.md

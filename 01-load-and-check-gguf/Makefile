@@ -11,8 +11,8 @@ MODEL     = ../resources/tinybrainbot-100m-v3-instruct/tinybrainbot-100m-v3-inst
 
 all: $(TARGET)
 
-$(TARGET): src/gguf-loader.cpp tests/test-load-gguf.cpp include/gguf-loader.h
-	$(CXX) $(CXXFLAGS) src/gguf-loader.cpp tests/test-load-gguf.cpp -o $(TARGET)
+$(TARGET): src/gguf.cpp tests/test-load-gguf.cpp include/gguf.h
+	$(CXX) $(CXXFLAGS) src/gguf.cpp tests/test-load-gguf.cpp -o $(TARGET)
 
 run: $(TARGET)
 	./$(TARGET) $(MODEL)

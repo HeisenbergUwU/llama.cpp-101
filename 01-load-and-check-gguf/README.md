@@ -132,4 +132,4 @@ if (n_tensors > 0 && !gr.seek(GGML_PAD(gr.tell(), ctx->alignment))) { ... }
 | `src/llama-model-loader.h` | bounds 校验 `offs + nbytes <= file_size` | `llama_tensor_weight` |
 | `src/llama-vocab.cpp` | **如何使用 tokens/scores/token_type 三个数组构建词表** | `llama_vocab::load` |
 
-这三条词表 KV（`tokenizer.ggml.tokens/scores/token_type`)在 `llama-arch.cpp` 注册为 `LLM_KV_TOKENIZER_LIST / TOKENIZER_SCORES / TOKENIZER_TOKEN_TYPE`，`llama-vocab.cpp` 里 `gguf_find_key` 找到后：`tokens` 必读（缺失即拒载，建文字↔id 双向映射）、`scores` 可选（填 `token_data.score`，供 bpe 打分、`-1000` 低分使特殊 token 不被合并）、`token_type` 可选（映射成 `LLAMA_TOKEN_ATTR_*`，决定 token 在编码/解码/采样的行为）。这正是 02 章（llama_model_loader）要把原始字节组织成语义词表对象的地方。
+这三条词表 KV（`tokenizer.ggml.tokens/scores/token_type`)在 `llama-arch.cpp` 注册为 `LLM_KV_TOKENIZER_LIST / TOKENIZER_SCORES / TOKENIZER_TOKEN_TYPE`，`llama-vocab.cpp` 里 `gguf_find_key` 找到后：`tokens` 必读（缺失即拒载，建文字↔id 双向映射）、`scores` 可选（填 `token_data.score`，供 bpe 打分、`-1000` 低分使特殊 token 不被合并）、`token_type` 可选（映射成 `LLAMA_TOKEN_ATTR_*`，决定 token 在编码/解码/采样的行为）。这正是 02 章（llama_model）要把原始字节组织成语义词表对象的地方（02 目前只把权重建成 `ggml_tensor`，词表属于 03 模型语义阶段）。
