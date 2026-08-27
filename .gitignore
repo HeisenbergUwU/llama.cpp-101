@@ -8,3 +8,5 @@ resources/*
 .omo/
 
 AGENTS.md
+
+playground/**
