@@ -14,19 +14,25 @@
 
 ## 目录结构（现状，与旧版 AGENTS 不符，勿凭旧记忆）
 
-> 章节被拆分重排过：先 `01`（GGUF 解析），再迷你 ggml 拆成 **02 结构 / 03 加载 / 04 llama_model** 三章。旧 AGENTS 里「02 直接建 llama_model」的说法已过时。
+> 章节多次拆分重排，已不是「01→02→03→04 llama_model」的简单递增。**以本列表为准。**
 
-- `00-what-is-llama-cpp/` —— 00 章「什么是 llama.cpp」（`README.md`，已完成）。
-- `01-load-and-check-gguf/` —— 01 章「加载并校验 GGUF」：裸 GGUF 解析器（只读元数据；`gguf_context`/`gguf_tensor_info`/`gguf_kv` 对齐上游）。已完成、有 `Makefile` 与手写测试。
-- `02-ggml-context/` —— **02 章「迷你 ggml 数据结构层」**：`namespace ggml` 里的 `ggml_type`/`ggml_tensor`/`ggml_context`(前向声明)/`ggml_object_type`/`ggml_cgraph`(仅为 03 预留声明) 的**类型与布局**。
-  - ⚠️ 本章**不写任何函数**（无 `ggml_init`/`ggml_new_tensor_*`），`src/ggml.cpp` 只有结构定义；`test/` 目录当前为空、未纳入 git。
-  - 文件：`include/ggml.h`（类型层）、`src/ggml.cpp`（`ggml_object`/`ggml_context` 内部定义）。
-- `03-ggml-load/` —— **03 章「迷你 ggml 函数/加载层」**（把池子分配 API 写出来：`ggml_init`/`ggml_new_object`/`ggml_new_tensor_*`/`ggml_set_name`/`ggml_nbytes`）。🚧 **尚未实现**，目前只有 `reference.md`。
-- `04-llama-model/` —— **04 章「建 `llama_model`」**（用 03 的能力把 GGUF 上百个 tensor 逐个实例化 + mmap 零拷贝挂数据）。🚧 **尚未实现**，目前只有 `reference.md`。原 `03-llama-model/` 已重命名为此目录。
+- `00-what-is-llama-cpp/` —— 00 章「什么是 llama.cpp」（`README.md`，已完成，无代码）。
+- `01-load-and-check-gguf/` —— 01 章「加载并校验 GGUF」：裸 GGUF 解析器（只读元数据；`gguf_context`/`gguf_tensor_info`/`gguf_kv` 对齐上游）。**仍用 `FILE*`/`fread` 顺序读，没走 llama-io**（它是解析原理的独立讲解）。
+- `02-ggml-context/` —— 02 章「迷你 ggml 数据结构层」：`namespace ggml` 里的类型与布局。⚠️ **不写任何函数**（无 `ggml_init`/`ggml_new_tensor_*`），无 Makefile/测试，不可独立构建。
+- `03-ggml-build-context/` —— 03 章「迷你 ggml 加载层」：把池子分配函数写出来（`ggml_init`/`ggml_new_tensor_*`/`ggml_set_name`/`ggml_nbytes`）。**已实现**，有 `Makefile` + 手写测试 `test-ggml-build-context`。目录名是 `build-context`，不是旧 AGENTS 写的 `ggml-load`。
+- `04-aggregate-functions/` —— 04 章「文件 IO 封装层」：`llama-io`（`llama_file` + `llama_mmap`）。**已实现**。
+- `05-llama-model-load/` —— 05 章「建 `llama_model` 聚合对象 + 加载权重」。**已实现**。
 - `resources/` —— 测试用模型权重（git 忽略）。默认模型：**`tinybrainbot-100m-v3-instruct/tinybrainbot-100m-v3-instruct-f16.gguf`**（约 200MB，F16/Llama，本教程所有推理都用它，8GB 内存跑得动）。另留 `Bonsai-27B-Q1_0.gguf`（3.8GB，Q1_0 量化对照）。都**别复制/移动/提交**，引用用相对路径。
-- `ROADMAP.md` —— 面向 30–31 章的**权威分章路线图**（draft）。改章节粒度/加章前先读它，别凭旧 AGENTS 的 ②③ 设想。
-- `playground/` —— 随手实验代码（`a.out`/`g.c` 等），**git 忽略**，不是成稿。
+- `playground/` —— 随手实验代码（`a.out`/`g.c`/`mmap_demo.cpp` 等），**git 忽略**，不是成稿。
 - `.omo/` —— 编排/延续运行机制，**不要编辑**。
+
+## 04/05 章自包含 + 统一的文件 IO 封装（新，最容易猜错）
+
+- **04/05 是「自包含」章**：每章 `src/` + `include/` 里都**各有一份拷贝** `gguf.h/cpp`、`ggml.h/cpp`、`llama-io.h/cpp`。`#include "gguf.h"` / `"ggml.h"` 指的是**本章自己的拷贝**，不是 01/03 的文件。Makefile 只用 `-Iinclude`（本章目录内），**不跨章 `-I`**。
+- **`llama-io` 是 04/05 唯一的文件 IO 入口**：`llama_file`（open/fstat/顺序读/fclose）+ `llama_mmap`（mmap/munmap）。04/05 里的 `gguf.cpp`、`llama-model.cpp` **不再裸调任何系统调用**——所有 `open/mmap/munmap/close/fopen` 只存在于 `llama-io.cpp` 内部。
+- **01 的 gguf.cpp 是例外**：仍是原始 `FILE*`/`fread` 版，没走 llama-io（01 是独立解析原理章）。
+- **`llama_mmap` 禁拷贝、可移动**：它持独占的 mmap 地址，`llama_model`(05) 持有它时靠移动语义（`llm.mmap = std::move(mapping)`）。给 `llama_mmap` 加 .cpp 实现移动构造/移动赋值时，注意源要置空避免双 `munmap`。
+- **每章编译产物二进制被 `.gitignore` 忽略**（`04-aggregate-functions/test-*`、`05-llama-model-load/test-*`、旧 `04-llama-model-load/test-*`）。提交时别 `git add` 二进制。
 
 ## 关键技术事实（实测，勿凭记忆改）
 
@@ -40,7 +46,7 @@
 ## 陷阱 & 注意事项
 
 - **不要混淆两个 MAGIC**：`gguf.h` 的 `GGUF_MAGIC "GGUF"`（GGUF **权重文件**）与 `ggml.h` 的 `GGML_FILE_MAGIC 0x67676d6c`/`"ggml"`（ggml **计算图**序列化）是两种不同格式的标识，非一份定义的两处拷贝。
-- **clangd（LSP）诊断对 `01/02/03/04` 报"找不到头文件 / 未声明标识符"是环境假阳性**：clangd 未配置 `-Iinclude` 与交叉 `-I../01-load-and-check-gguf/include`，导致 `gguf.h`/`ggml.h` 无法解析、级联一堆 incomplete type 错误（`unused-includes` 警告亦然）。实际 `make` 用 `-std=c++11 -Wall -Wextra` 编译干净。**别被误导去"修"它。**
+- **clangd（LSP）诊断对 `01/02/03/04/05` 报"找不到头文件 / 未声明标识符"是环境假阳性**：clangd 未配置各章的 `-Iinclude`，导致 `gguf.h`/`ggml.h`/`llama-io.h` 无法解析、级联一堆 incomplete type 错误（`unused-includes` 警告亦然）。实际 `make` 用 `-std=c++11 -Wall -Wextra` 编译干净。**别被误导去"修"它。**
 
 ## 约定
 

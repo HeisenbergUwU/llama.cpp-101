@@ -53,8 +53,9 @@
 - **00** `00-what-is-llama-cpp/` — 什么是 llama.cpp。✅
 - **01** `01-load-and-check-gguf/` — 裸 GGUF 解析器（header / KV / tensor info / 对齐 / bounds）。✅
 - **02** `02-ggml-context/` — 迷你 ggml 的**数据结构层**：`ggml_type` / `ggml_tensor` / `ggml_context` / `ggml_object` / 池子布局 / cgraph 声明。✅（只定型与池子内部布局，**还没写任何加载函数**）
-- **03** `03-ggml-load/` — 迷你 ggml 的**函数 / 加载层**：补上 02 没实现的池子分配 API——`ggml_init`（建池）、`ggml_new_object`（池子切块）、`ggml_new_tensor_*`（实例化张量）、`nb[]` 换算、`ggml_set_name`、`ggml_nbytes`。🚧 **本章（本次修正的重点）**：把「数据结构」变成「能真正往池子里加载张量」。
-- **04** `04-llama-model/` — 建聚合对象 `llama_model`：用 03 的能力把 GGUF 的 110 个 tensor 逐个实例化成真实 `ggml_tensor`（no_alloc=true）+ `tensors_by_name` + mmap 零拷贝挂 `data`。🚧
+- **03** `03-ggml-build-context/` — 迷你 ggml 的**函数 / 加载层**：补上 02 没实现的池子分配 API——`ggml_init`（建池）、`ggml_new_object`（池子切块）、`ggml_new_tensor_*`（实例化张量）、`nb[]` 换算、`ggml_set_name`、`ggml_nbytes`。✅ 已实现（有 `Makefile` + 手写测试）。
+- **04** `04-aggregate-functions/` — 文件 IO 封装层：`llama_file`（open/fstat/顺序读/fclose）+ `llama_mmap`（mmap/munmap）。✅ 已实现（04/05 的所有文件操作统一走这一层）。
+- **05** `05-llama-model-load/` — 建聚合对象 `llama_model`：用 03 的能力把 GGUF 的 110 个 tensor 逐个实例化成真实 `ggml_tensor`（no_alloc=true）+ mmap 零拷贝挂 `data`（由 `llama_mmap` 提供）。✅ 已实现。
   - 关键：把权重「拿到内存」**不需要任何计算算子**（纯 memcpy/指针 + 池子指针），算子是 20–23 的后话。
 
 ---

@@ -30,13 +30,17 @@
 
 ## 🗺️ 路线图 Roadmap
 
-按 llama.cpp 的真实分层，把从"读文件"到"跑推理，再到对外提供 API"拆成三个阶段：
+按 llama.cpp 的真实分层，从 "读文件" 到 "跑推理、再到对外提供 API" 逐章拆解。**最新分章粒度以 `ROADMAP.md` 为准**，本表给出当前进度：
 
-| 阶段 | 内容 | 对应上游 | 状态 |
-|------|------|----------|:----:|
-| ① `gguf_context` | 只读 GGUF 元数据：header、KV、tensor info、对齐、bounds 校验 | `gguf.cpp::gguf_init_from_file` | ✅ 01 章完成 |
-| ② `llama_model` | 建聚合对象 `llama_model`：迷你 ggml + 110 个真实 `ggml_tensor`（池子式内存）+ mmap 零拷贝 | `llama-model.*` + `ggml/src/ggml.c` | ✅ 02 章完成 |
-| ③ 推理 + API | 前向计算、采样、KV 缓存；最后封装成服务 API | ggml 计算图 + `llama_context` + server | ⬜ 03 章 |
+| 章 | 主题 | 对应上游 | 状态 |
+|----|------|----------|:----:|
+| 00 | 什么是 llama.cpp | — | ✅ |
+| 01 | 加载并校验 GGUF（裸解析器） | `gguf.cpp::gguf_init_from_file` | ✅ |
+| 02 | 迷你 ggml 数据结构层（类型与布局） | `ggml/src/ggml.h/.c` | ✅ |
+| 03 | 迷你 ggml 加载层（池子分配函数） | `ggml/src/ggml.c` | ✅ |
+| 04 | 文件 IO 封装层（`llama_file` + `llama_mmap`） | `llama.cpp/src/llama-mmap.*` | ✅ |
+| 05 | `llama_model` 聚合对象 + 加载权重（mmap 零拷贝） | `llama-model-loader.*` + `llama-model.*` | ✅ |
+| 06+ | 模型语义 / 前向 / 采样 / server | ggml 计算图 + `llama_context` + server | ⬜ 规划中 |
 
 ---
 
@@ -48,18 +52,25 @@ llama.cpp-101/
 ├── resources/                     # 测试用模型权重（tinybrainbot 等，git 忽略）
 ├── 00-what-is-llama-cpp/          # 00 章：llama.cpp 是什么
 ├── 01-load-and-check-gguf/        # 01 章：加载并校验 GGUF（裸 GGUF 解析器）
+├── 02-ggml-context/               # 02 章：迷你 ggml 数据结构层
+├── 03-ggml-build-context/         # 03 章：迷你 ggml 加载层（池子分配函数）
+├── 04-aggregate-functions/        # 04 章：文件 IO 封装层（llama_file + llama_mmap）
+├── 05-llama-model-load/           # 05 章：建 llama_model 聚合对象 + 加载权重
+├── ROADMAP.md                     # 权威分章路线图（改动分章前先读它）
 └── AGENTS.md                      # 协作者 / 贡献者须知
 ```
 
-> `llama.cpp/`、`resources/`、`.omo/` 均被 git 忽略；每个章节自带源码、测试与 Makefile。
+> `llama.cpp/`、`resources/`、`.omo/`、`playground/` 均被 git 忽略；每个可构建章节自带源码、测试与 Makefile（04/05 自包含，含前几章代码的本地拷贝）。
 
 **快速开始：**
 
 ```bash
+# 01 章：裸 GGUF 解析器，解析并校验 tinybrainbot
 cd 01-load-and-check-gguf && make run
-```
 
-（默认解析 tinybrainbot 的 GGUF 并校验，体积小、8GB 内存也能跑。）
+# 05 章：完整加载 llama_model（110 个 tensor，mmap 零拷贝），8GB 内存也能跑
+cd 05-llama-model-load && make run
+```
 
 ---
 
@@ -100,11 +111,17 @@ So I created this project and went a different way:
 
 ### Roadmap
 
-| Phase | Scope | Upstream reference | Status |
-|-------|-------|--------------------|:------:|
-| ① `gguf_context` | Read GGUF metadata: header, KV, tensor info, alignment, bounds checks | `gguf.cpp::gguf_init_from_file` | ✅ Ch.01 |
-| ② `llama_model` | Aggregate `llama_model`: mini ggml + 110 real `ggml_tensor` (pool alloc) + mmap zero-copy | `llama-model.*` + `ggml/src/ggml.c` | ✅ Ch.02 |
-| ③ Inference + API | Forward pass, sampling, KV cache; then expose as a service API | ggml graph + `llama_context` + server | ⬜ Ch.03 |
+Following llama.cpp's real layering, chapter by chapter from "reading the file" to "inference, then a service API". **Authoritative granularity lives in `ROADMAP.md`**; this table shows current progress:
+
+| Ch | Topic | Upstream reference | Status |
+|----|-------|--------------------|:------:|
+| 00 | What is llama.cpp | — | ✅ |
+| 01 | Load & validate GGUF (bare parser) | `gguf.cpp::gguf_init_from_file` | ✅ |
+| 02 | Mini ggml data-structure layer | `ggml/src/ggml.h/.c` | ✅ |
+| 03 | Mini ggml load layer (pool allocators) | `ggml/src/ggml.c` | ✅ |
+| 04 | File I/O wrapper (`llama_file` + `llama_mmap`) | `llama.cpp/src/llama-mmap.*` | ✅ |
+| 05 | `llama_model` aggregate + load weights (mmap zero-copy) | `llama-model-loader.*` + `llama-model.*` | ✅ |
+| 06+ | Model semantics / forward / sampling / server | ggml graph + `llama_context` + server | ⬜ planned |
 
 ### Layout
 
@@ -114,13 +131,22 @@ llama.cpp-101/
 ├── resources/                     # test weights (git-ignored)
 ├── 00-what-is-llama-cpp/          # Ch.00: what is llama.cpp
 ├── 01-load-and-check-gguf/        # Ch.01: load & validate GGUF (bare parser)
+├── 02-ggml-context/               # Ch.02: mini ggml data-structure layer
+├── 03-ggml-build-context/         # Ch.03: mini ggml load layer (pool allocators)
+├── 04-aggregate-functions/        # Ch.04: file I/O wrapper (llama_file + llama_mmap)
+├── 05-llama-model-load/           # Ch.05: llama_model aggregate + load weights
+├── ROADMAP.md                     # authoritative chapter roadmap
 └── AGENTS.md                      # contributor notes
 ```
+
+> `llama.cpp/`, `resources/`, `.omo/`, `playground/` are git-ignored; each buildable chapter ships its own source, test, and Makefile (04/05 are self-contained with local copies of prior chapters).
 
 **Get started:**
 
 ```bash
+# Ch.01: bare GGUF parser, parse & validate tinybrainbot
 cd 01-load-and-check-gguf && make run
-```
 
-(Small test model; runs fine on 8GB RAM.)
+# Ch.05: full llama_model load (110 tensors, mmap zero-copy), runs on 8GB RAM
+cd 05-llama-model-load && make run
+```
