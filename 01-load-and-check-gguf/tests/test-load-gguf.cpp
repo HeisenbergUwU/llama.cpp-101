@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 
     gguf::gguf_context info;
     std::string err;
-    if (!gguf::load_and_check(argv[1], info, err))
+    if (!gguf::gguf_load(argv[1], info, err))
     {
         fprintf(stderr, "FAIL: %s\n", err.c_str());
         return 1;
