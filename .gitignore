@@ -10,3 +10,8 @@ resources/*
 AGENTS.md
 
 playground/**
+
+# 各章编译产物（可执行测试二进制），不提交
+04-aggregate-functions/test-*
+05-llama-model-load/test-*
+04-llama-model-load/test-*

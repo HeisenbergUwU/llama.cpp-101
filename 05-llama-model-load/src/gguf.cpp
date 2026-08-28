@@ -5,6 +5,7 @@
 // 因为是教程实现，省略了端序转换、多分片、mmap 等，聚焦"怎么读 + 怎么查"。
 
 #include "gguf.h"
+#include "llama-io.h" // 04/05 章：文件 IO 封装层（用 llama_file 读，不再裸调 fopen/fread）
 
 #include <cstring>
 #include <sstream>
@@ -14,18 +15,17 @@ namespace gguf
 
     // 跨文件读取时的游标式顺序读取辅助（对应 gguf.cpp 里 file_remain/read 这类 static helper 的习惯）。
     // 文件内部辅助都用 static（内部链接），与上游 gguf.cpp 保持一致的写法。
+    // 参数从 FILE* 换成 llama::llama_file（IO 封装层），不直接碰系统调用。
 
-    static bool read_at(FILE *f, uint64_t offset, void *out, size_t len)
+    static bool read_at(const llama::llama_file &file, uint64_t offset, void *out, size_t len)
     {
-        if (fseek(f, offset, SEEK_SET) != 0)
-            return false;
-        return fread(out, 1, len, f) == len;
+        return file.read_at(offset, out, len);
     }
     // 小端序读取一个元素
     template <typename T>
-    static bool read_le(FILE *f, uint64_t &pos, T &out)
+    static bool read_le(const llama::llama_file &file, uint64_t &pos, T &out)
     {
-        if (!read_at(f, pos, &out, sizeof(T)))
+        if (!read_at(file, pos, &out, sizeof(T)))
             return false;
         pos += sizeof(T);
         return true;
@@ -35,11 +35,11 @@ namespace gguf
     //   ① 先读前 8 字节拿到长度 len（这个长度是格式里固定存的，读到才知道）
     //   ② 再按 len 读 len 个字节的字符串本体（不含结尾 '\0'）
     // 读完把游标 pos 前进到字符串末尾，方便调用方接着读下一个字段。
-    static bool read_string(FILE *f, uint64_t &pos, std::string &out, std::string &err, const char *what, uint64_t file_size)
+    static bool read_string(const llama::llama_file &file, uint64_t &pos, std::string &out, std::string &err, const char *what, uint64_t file_size)
     {
         uint64_t len = 0;
         // ① 读长度字段（u64，8 字节）；失败说明文件在这里就断了
-        if (!read_le(f, pos, len))
+        if (!read_le(file, pos, len))
         {
             err = std::string("unexpected EOF reading ") + what + " length";
             return false;
@@ -53,7 +53,7 @@ namespace gguf
         // ④ 按 len 扩容 std::string，预留空间装字符串
         out.resize(len);
         // ⑤ 从 pos 读 len 个字节填进 out；&out[0] 是字符串内部缓冲区的起始地址
-        if (!read_at(f, pos, &out[0], len))
+        if (!read_at(file, pos, &out[0], len))
         {
             err = std::string("unexpected EOF reading ") + what;
             return false;
@@ -117,13 +117,13 @@ namespace gguf
     }
 
     // 读取 KV 段的泛型元素（标量或数组）。这里为了通用，把每个元素读成字符串。
-    static bool read_kv_pairs(FILE *f, uint64_t &pos, int64_t n_kv, gguf_context &info,
+    static bool read_kv_pairs(const llama::llama_file &file, uint64_t &pos, int64_t n_kv, gguf_context &info,
                               std::string &err, uint64_t file_size)
     {
         for (int64_t i = 0; i < n_kv; ++i)
         {
             gguf_kv kv;
-            if (!read_string(f, pos, kv.key, err, "kv key", file_size))
+            if (!read_string(file, pos, kv.key, err, "kv key", file_size))
                 return false;
 
             // 重复 key 检查（上游 gguf.cpp 有同样检查）
@@ -137,7 +137,7 @@ namespace gguf
             }
 
             int32_t vt = 0;
-            if (!read_le(f, pos, vt))
+            if (!read_le(file, pos, vt))
             {
                 err = "unexpected EOF reading kv value type";
                 return false;
@@ -148,12 +148,12 @@ namespace gguf
             { // ARRAY：先读元素类型，再读元素个数
                 int32_t et = 0;
                 uint64_t n = 0;
-                if (!read_le(f, pos, et)) // read an element of Type
+                if (!read_le(file, pos, et)) // read an element of Type
                 {
                     err = "unexpected EOF reading array type";
                     return false;
                 }
-                if (!read_le(f, pos, n)) // number of byte
+                if (!read_le(file, pos, n)) // number of byte
                 {
                     err = "unexpected EOF reading array count";
                     return false;
@@ -169,7 +169,7 @@ namespace gguf
                     if (et == GGUF_TYPE_STRING)
                     { // 元素是字符串
                         std::string tmp;
-                        if (!read_string(f, pos, tmp, err, "array string", file_size))
+                        if (!read_string(file, pos, tmp, err, "array string", file_size))
                             return false;
                         kv.arr_value.push_back(std::move(tmp));
                     }
@@ -187,7 +187,7 @@ namespace gguf
                             err = "array data out of bounds";
                             return false;
                         }
-                        if (!read_at(f, pos, buf, sz))
+                        if (!read_at(file, pos, buf, sz))
                         {
                             err = "unexpected EOF reading array element";
                             return false;
@@ -231,7 +231,7 @@ namespace gguf
             }
             else if (vt == GGUF_TYPE_STRING)
             { // STRING
-                if (!read_string(f, pos, kv.value, err, "kv string", file_size))
+                if (!read_string(file, pos, kv.value, err, "kv string", file_size))
                     return false;
             }
             else
@@ -248,7 +248,7 @@ namespace gguf
                     return false;
                 }
                 std::string raw(sz, '\0');
-                if (!read_at(f, pos, &raw[0], sz))
+                if (!read_at(file, pos, &raw[0], sz))
                 {
                     err = "unexpected EOF reading kv value";
                     return false;
@@ -293,13 +293,13 @@ namespace gguf
     }
 
     // 读取张量信息段（对应 gguf.cpp 的 tensor info 循环）
-    static bool read_tensor_info(FILE *f, uint64_t &pos, int64_t n_tensors, gguf_context &info,
+    static bool read_tensor_info(const llama::llama_file &file, uint64_t &pos, int64_t n_tensors, gguf_context &info,
                                  std::string &err, uint64_t file_size)
     {
         for (int64_t i = 0; i < n_tensors; ++i)
         {
             gguf_tensor_info t;
-            if (!read_string(f, pos, t.name, err, "tensor name", file_size))
+            if (!read_string(file, pos, t.name, err, "tensor name", file_size))
                 return false;
 
             // 张量名不能太长（上游 GGML_MAX_NAME）
@@ -321,7 +321,7 @@ namespace gguf
 
             // n_dims
             uint32_t n_dims = 0;
-            if (!read_le(f, pos, n_dims))
+            if (!read_le(file, pos, n_dims))
             {
                 err = "unexpected EOF reading n_dims";
                 return false;
@@ -336,7 +336,7 @@ namespace gguf
             // ne[]
             for (int32_t j = 0; j < (int32_t)n_dims; ++j)
             {
-                if (!read_le(f, pos, t.ne[j]))
+                if (!read_le(file, pos, t.ne[j]))
                 {
                     err = "unexpected EOF reading ne";
                     return false;
@@ -350,7 +350,7 @@ namespace gguf
 
             // type
             int32_t ty = 0;
-            if (!read_le(f, pos, ty))
+            if (!read_le(file, pos, ty))
             {
                 err = "unexpected EOF reading tensor type";
                 return false;
@@ -358,7 +358,7 @@ namespace gguf
             t.type = ty;
 
             // offset
-            if (!read_le(f, pos, t.offset))
+            if (!read_le(file, pos, t.offset))
             {
                 err = "unexpected EOF reading tensor offset";
                 return false;
@@ -398,76 +398,60 @@ namespace gguf
 
     bool gguf_load(const std::string &fname, gguf_context &info, std::string &err)
     {
-        FILE *f = fopen(fname.c_str(), "rb");
-        if (!f)
+        // 用 llama_file 打开(RAII:析构自动 fclose，不再手动关)
+        llama::llama_file file(fname.c_str());
+        if (!file.valid)
         {
             err = "cannot open file: " + fname;
             return false;
         }
-
-        // 文件总大小：跳到末尾再取当前位置
-        if (fseek(f, 0, SEEK_END) != 0)
-        {
-            err = "cannot seek to end of file: " + fname;
-            fclose(f);
-            return false;
-        }
-        info.file_size = (uint64_t)ftell(f);
-        rewind(f);
+        info.file_size = (uint64_t)file.size;
 
         uint64_t pos = 0;
 
         // ---- 1. header（对应 gguf.cpp：magic -> version -> n_tensors -> n_kv） ----
         char magic[4] = {0};
-        if (!read_at(f, pos, magic, 4))
+        if (!read_at(file, pos, magic, 4))
         {
             err = "unexpected EOF reading magic";
-            fclose(f);
             return false;
         }
         pos += 4;
         if (memcmp(magic, GGUF_MAGIC, 4) != 0) // 对比 4个字节
         {
             err = "bad magic (not a GGUF file)";
-            fclose(f);
             return false;
         }
 
-        if (!read_le(f, pos, info.version))
+        if (!read_le(file, pos, info.version))
         {
             err = "unexpected EOF reading version";
-            fclose(f);
             return false;
         }
         if (info.version > GGUF_VERSION)
         {
             err = "unsupported GGUF version " + std::to_string(info.version) + " (max " + std::to_string(GGUF_VERSION) + ")";
-            fclose(f);
             return false;
         }
-        if (!read_le(f, pos, info.n_tensors))
+        if (!read_le(file, pos, info.n_tensors))
         {
             err = "unexpected EOF reading n_tensors";
-            fclose(f);
             return false;
         }
-        if (!read_le(f, pos, info.n_kv))
+        if (!read_le(file, pos, info.n_kv))
         {
             err = "unexpected EOF reading n_kv";
-            fclose(f);
             return false;
         }
         if (info.n_tensors < 0 || info.n_kv < 0)
         {
             err = "negative n_tensors/n_kv";
-            fclose(f);
             return false;
         }
 
         // ---- 2. KV 段 ----
-        if (!read_kv_pairs(f, pos, info.n_kv, info, err, info.file_size))
+        if (!read_kv_pairs(file, pos, info.n_kv, info, err, info.file_size))
         {
-            fclose(f);
             return false;
         }
 
@@ -483,14 +467,12 @@ namespace gguf
         if (info.alignment == 0 || (info.alignment & (info.alignment - 1)) != 0)
         {
             err = "alignment " + std::to_string(info.alignment) + " is not a power of 2";
-            fclose(f);
             return false;
         }
 
         // ---- 3. tensor 信息段 ----
-        if (!read_tensor_info(f, pos, info.n_tensors, info, err, info.file_size))
+        if (!read_tensor_info(file, pos, info.n_tensors, info, err, info.file_size))
         {
-            fclose(f);
             return false;
         }
 
@@ -499,7 +481,6 @@ namespace gguf
         if (info.offset > info.file_size)
         {
             err = "data offset beyond file size";
-            fclose(f);
             return false;
         }
 
@@ -512,12 +493,10 @@ namespace gguf
             if (offs + (uint64_t)t.nbytes < offs || offs + (uint64_t)t.nbytes > info.file_size)
             {
                 err = "tensor '" + t.name + "' data not within file bounds, model corrupted or incomplete";
-                fclose(f);
                 return false;
             }
         }
 
-        fclose(f);
         return true;
     }
 
