@@ -28,6 +28,8 @@
 #include <string>
 #include <vector>
 
+#include "llama-io.h" // 04 章：llama_file（gguf_load 复用上层打开的文件，不再自己开）
+
 // ---- 常量（取自 gguf.h / ggml.h） ----
 #define GGUF_MAGIC "GGUF"
 #define GGUF_VERSION 3
@@ -130,8 +132,10 @@ namespace gguf
     };
 
     // ---- 解析入口 ----
+    // 传入已由上层打开的 llama_file，只解析、不再自己开文件
+    // （04/05 章线性化：文件只打开一次，同一份 file 既喂给 gguf_load 又给 mmap）。
     // 成功返回 true，并把结果填进 info；失败返回 false（out 里记录错误信息）。
-    bool gguf_load(const std::string &fname, gguf_context &info, std::string &err);
+    bool gguf_load(const llama::llama_file &file, gguf_context &info, std::string &err);
 
     // 把 KV 值转成可读字符串（标量/数组），供打印使用。
     std::string fmt_value(const gguf_kv &kv);

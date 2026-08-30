@@ -5,7 +5,7 @@
 // 因为是教程实现，省略了端序转换、多分片、mmap 等，聚焦"怎么读 + 怎么查"。
 
 #include "gguf.h"
-#include "llama-io.h" // 04 章：文件 IO 封装层（用 llama_file 读，不再裸调 fopen/fread）
+#include "llama-io.h" // 04/05 章：文件 IO 封装层（用 llama_file 读，不再裸调 fopen/fread）
 
 #include <cstring>
 #include <sstream>
@@ -15,17 +15,12 @@ namespace gguf
 
     // 跨文件读取时的游标式顺序读取辅助（对应 gguf.cpp 里 file_remain/read 这类 static helper 的习惯）。
     // 文件内部辅助都用 static（内部链接），与上游 gguf.cpp 保持一致的写法。
-    // 参数从 FILE* 换成 llama::llama_file（04 章封装层），不直接碰系统调用。
-
-    static bool read_at(const llama::llama_file &file, uint64_t offset, void *out, size_t len)
-    {
-        return file.read_at(offset, out, len);
-    }
+    // 读取本身直接调 llama_file::read_at（不再包一层转发壳），这里只补「游标推进」等辅助。
     // 小端序读取一个元素
     template <typename T>
     static bool read_le(const llama::llama_file &file, uint64_t &pos, T &out)
     {
-        if (!read_at(file, pos, &out, sizeof(T)))
+        if (!file.read_at(pos, &out, sizeof(T)))
             return false;
         pos += sizeof(T);
         return true;
@@ -53,7 +48,7 @@ namespace gguf
         // ④ 按 len 扩容 std::string，预留空间装字符串
         out.resize(len);
         // ⑤ 从 pos 读 len 个字节填进 out；&out[0] 是字符串内部缓冲区的起始地址
-        if (!read_at(file, pos, &out[0], len))
+        if (!file.read_at(pos, &out[0], len))
         {
             err = std::string("unexpected EOF reading ") + what;
             return false;
@@ -187,7 +182,7 @@ namespace gguf
                             err = "array data out of bounds";
                             return false;
                         }
-                        if (!read_at(file, pos, buf, sz))
+                        if (!file.read_at(pos, buf, sz))
                         {
                             err = "unexpected EOF reading array element";
                             return false;
@@ -248,7 +243,7 @@ namespace gguf
                     return false;
                 }
                 std::string raw(sz, '\0');
-                if (!read_at(file, pos, &raw[0], sz))
+                if (!file.read_at(pos, &raw[0], sz))
                 {
                     err = "unexpected EOF reading kv value";
                     return false;
@@ -396,13 +391,12 @@ namespace gguf
         return true;
     }
 
-    bool gguf_load(const std::string &fname, gguf_context &info, std::string &err)
+    bool gguf_load(const llama::llama_file &file, gguf_context &info, std::string &err)
     {
-        // 用 04 章 llama_file 打开(RAII:析构自动 fclose，不再手动关)
-        llama::llama_file file(fname.c_str());
+        // file 由上层打开后传入：只解析，不再自己开文件（04/05 章线性化）。
         if (!file.valid)
         {
-            err = "cannot open file: " + fname;
+            err = "file not open (valid=false)";
             return false;
         }
         info.file_size = (uint64_t)file.size;
@@ -411,7 +405,7 @@ namespace gguf
 
         // ---- 1. header（对应 gguf.cpp：magic -> version -> n_tensors -> n_kv） ----
         char magic[4] = {0};
-        if (!read_at(file, pos, magic, 4))
+        if (!file.read_at(pos, magic, 4))
         {
             err = "unexpected EOF reading magic";
             return false;

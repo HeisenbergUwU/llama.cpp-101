@@ -49,9 +49,6 @@ namespace llama
         {
             return read_at(offset, &out, sizeof(T));
         }
-
-        llama_file(const llama_file &) = delete;
-        llama_file &operator=(const llama_file &) = delete;
     };
 
     // ---- 内存映射封装:mmap + munmap ----
@@ -68,14 +65,6 @@ namespace llama
         // 把整个文件按只读映射进地址空间。依赖 llama_file 已合法打开。
         explicit llama_mmap(const llama_file &file);
         ~llama_mmap(); // munmap(addr, size)
-
-        // 移动:接管另一份映射的 addr/size,把源置空(避免双 munmap)。
-        // 需要移动是因为 llama_model 会持有 llama_mmap(从局部临时 std::move 进来)。
-        llama_mmap(llama_mmap &&other) noexcept;
-        llama_mmap &operator=(llama_mmap &&other) noexcept;
-
-        llama_mmap(const llama_mmap &) = delete;            // 用到了编译就报错
-        llama_mmap &operator=(const llama_mmap &) = delete; // 用到了编译就报错
     };
 
 } // namespace llama

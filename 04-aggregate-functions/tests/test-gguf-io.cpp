@@ -31,8 +31,9 @@ int main(int argc, char **argv)
     gguf::gguf_context info;
     std::string err;
 
-    // gguf_load 内部用 llama::llama_file 打开文件(不再裸 fopen)
-    if (!gguf::gguf_load(argv[1], info, err))
+    // gguf_load 复用上层打开的 llama_file 解析（不再自己 fopen）
+    llama::llama_file file(argv[1]);
+    if (!gguf::gguf_load(file, info, err))
     {
         return fail(err.c_str());
     }

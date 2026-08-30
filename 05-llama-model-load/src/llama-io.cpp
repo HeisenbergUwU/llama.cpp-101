@@ -57,7 +57,6 @@ namespace llama
 
     bool llama_file::read_at(uint64_t offset, void *out, size_t len) const
     {
-        // pread 原子地读:不改变文件偏移，也不依赖 FILE* 缓冲，和多线程/mmap 混用安全
         if (offset + len > size)
         {
             return false; // 越界
@@ -69,7 +68,6 @@ namespace llama
     llama_mmap::llama_mmap(const llama_file &file)
         : size(file.size)
     {
-        // 对齐上游:零拷贝只读映射整个文件(MAP_SHARED 让多份映射共享文件页)
         addr = mmap(nullptr, file.size, PROT_READ, MAP_SHARED, file.fd, 0);
         if (addr == MAP_FAILED)
         {
@@ -83,31 +81,6 @@ namespace llama
         {
             munmap(addr, size);
         }
-    }
-
-    // 移动构造:接管源对象的映射,把源置空(否则两边析构会双 munmap)
-    llama_mmap::llama_mmap(llama_mmap &&other) noexcept
-        : addr(other.addr), size(other.size)
-    {
-        other.addr = nullptr;
-        other.size = 0;
-    }
-
-    // 移动赋值:先把自己现有的映射释放,再接管源(同样把源置空)
-    llama_mmap &llama_mmap::operator=(llama_mmap &&other) noexcept
-    {
-        if (this != &other)
-        {
-            if (addr != nullptr)
-            {
-                munmap(addr, size); // 释放自己原有映射
-            }
-            addr = other.addr;
-            size = other.size;
-            other.addr = nullptr;
-            other.size = 0;
-        }
-        return *this;
     }
 
 } // namespace llama

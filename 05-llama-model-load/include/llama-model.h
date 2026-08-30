@@ -41,8 +41,8 @@ namespace llama
     };
 
     // 加载入口：把 GGUF 文件加载成 llama_model
-    // 流程：llama_file 打开 -> llama_mmap 映射 -> ggml_init(no_alloc)
-    //       -> gguf::gguf_load -> 每个 tensor: ggml_new_tensor + set_name
+    // 流程：llama_file 打开一次 -> llama_mmap 映射（同一 file）
+    //       -> gguf::gguf_load 复用该 file -> 每个 tensor: ggml_new_tensor + set_name
     //                            + data = mmap.addr() + info.offset + ti.offset
     // 成功 true 填好 llm；失败 false（err 写原因）。
     bool load_model(const std::string &path, llama_model &llm, std::string &err);
