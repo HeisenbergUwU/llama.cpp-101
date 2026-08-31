@@ -19,7 +19,7 @@
 
 | 步 | 内容 | 产出 |
 |----|------|------|
-| **02–04** | 基础加载（逐步拆细）：**02** 迷你 ggml 数据结构（✅ 已做）；**03** 迷你 ggml 函数/加载层（`ggml_init` 建池 / `ggml_new_tensor_*` 实例化 / `nb[]` 换算 / `ggml_nbytes`）；**04** `llama_model` 加载（在上面组装 110 个裸 tensor + mmap 零拷贝拖权重） | 拿到「能按名取、数据零拷贝」的模型 |
+| **02–05** | 基础加载（✅ 全部完成）：**02** 迷你 ggml 数据结构；**03** 迷你 ggml 函数/加载层（`ggml_init` 建池 / `ggml_new_tensor_*` 实例化 / `nb[]` 换算 / `ggml_nbytes`）；**04** 文件 IO 封装（`llama_file` + `llama_mmap`）；**05** `llama_model`（组装 110 个裸 tensor + mmap 零拷贝拖权重） | 拿到「能按名取、数据零拷贝」的模型 |
 | **05** | 模型语义 + 单 token 前向：从 `gguf_context.kv` 解析 hparams/vocab（tokenize/detokenize）；写 llama 前向 13 步算子（复用 `model.require_weight`）；argmax 采 1 个 token | 给一个 prompt 能算出 logits + 贪心 1 token |
 | **06** | 自回归采样：贪心循环生成多 token，直到 EOG / max_tokens | 命令行能生成一段文本 |
 | **07** | 最小 CPU server：HTTP + `POST /v1/chat/completions`（非流式先出 JSON） | **curl 一发，拿到回复文本** |
@@ -34,7 +34,7 @@
 
 | 阶段 | 章节 | 主题 | 里程碑 |
 |------|------|------|--------|
-| ①② 基础 | 00–04 | 什么是 / GGUF 解析 / ggml 数据结构 / ggml 加载 / llama_model | ✅ 00–02 完成，03–04 待做 |
+| ①② 基础 | 00–05 | 什么是 / GGUF 解析 / ggml 数据结构 / ggml 加载 / 文件IO / llama_model | ✅ 00–05 完成 |
 | ③ 模型语义层 | 05–07 | hparams → llama_model 语义 → vocab | 拿到「语义模型」 |
 | ④ 上下文层 | 08–09 | context + KV 分配 / batch | 拿到「运行内存」 |
 | ⑤ 前向计算图 | 10–19 | transformer 逐算子拆解 | 图能描述一次前向 |

@@ -31,7 +31,8 @@
 - **04/05 是「自包含」章**：每章 `src/` + `include/` 里都**各有一份拷贝** `gguf.h/cpp`、`ggml.h/cpp`、`llama-io.h/cpp`。`#include "gguf.h"` / `"ggml.h"` 指的是**本章自己的拷贝**，不是 01/03 的文件。Makefile 只用 `-Iinclude`（本章目录内），**不跨章 `-I`**。
 - **`llama-io` 是 04/05 唯一的文件 IO 入口**：`llama_file`（open/fstat/顺序读/fclose）+ `llama_mmap`（mmap/munmap）。04/05 里的 `gguf.cpp`、`llama-model.cpp` **不再裸调任何系统调用**——所有 `open/mmap/munmap/close/fopen` 只存在于 `llama-io.cpp` 内部。
 - **01 的 gguf.cpp 是例外**：仍是原始 `FILE*`/`fread` 版，没走 llama-io（01 是独立解析原理章）。
-- **`llama_mmap` 禁拷贝、可移动**：它持独占的 mmap 地址，`llama_model`(05) 持有它时靠移动语义（`llm.mmap = std::move(mapping)`）。给 `llama_mmap` 加 .cpp 实现移动构造/移动赋值时，注意源要置空避免双 `munmap`。
+- **`llama_mmap` 禁拷贝、可移动**：它持独占的 mmap 地址，`llama_model`(05) 持有它时靠移动语义（`llm.mmap = std::move(mapping)`，把局部 `mapping` 移入 `llm.mmap`）。移动构造/移动赋值已实现于 `llama-io.cpp`，**约定：接管后必须把源 `addr` 置空，否则两对象析构会对同一地址双 `munmap`**。改这段时别破坏这个不变量。
+- **05 的 ggml 池子大小是按 tensor 个数动态算的**（`pool_size = 对象头 + n_tensors×(对象头+align16(sizeof ggml_tensor)) + 余量`）。`ggml_init` 在 `gguf_load` **之后**（要先拿到 `n_tensors`）。⚠️ **别用 `mapping.size`（= 文件大小 ~200MB）当池子**——`no_alloc=true` 池子只装结构，110 个 tensor 只需约 22KB，198MB calloc 是浪费。
 - **每章编译产物二进制被 `.gitignore` 忽略**（`04-aggregate-functions/test-*`、`05-llama-model-load/test-*`、旧 `04-llama-model-load/test-*`）。提交时别 `git add` 二进制。
 
 ## 关键技术事实（实测，勿凭记忆改）
@@ -46,6 +47,7 @@
 ## 陷阱 & 注意事项
 
 - **不要混淆两个 MAGIC**：`gguf.h` 的 `GGUF_MAGIC "GGUF"`（GGUF **权重文件**）与 `ggml.h` 的 `GGML_FILE_MAGIC 0x67676d6c`/`"ggml"`（ggml **计算图**序列化）是两种不同格式的标识，非一份定义的两处拷贝。
+- **声明"类型同名"的对象时用 `{}` 不要 `()`**：如 `gguf::gguf_context gguf_context();` 的空括号会被 C++ 当成**函数声明**（最恼人的解析 most vexing parse）→ 传给 `gguf_load(..., gguf_context, ...)` 报"cannot bind"，编译器还有 `-Wvexing-parse` 警告。写 `gguf::gguf_context gguf_context{};`（或 `= {}`）。项目里 `05` 常见这种"变量名 = 类型名"的写法（`gguf_context` / `llama_file`），合法但必须用 `{}` 构造。
 - **clangd（LSP）诊断对 `01/02/03/04/05` 报"找不到头文件 / 未声明标识符"是环境假阳性**：clangd 未配置各章的 `-Iinclude`，导致 `gguf.h`/`ggml.h`/`llama-io.h` 无法解析、级联一堆 incomplete type 错误（`unused-includes` 警告亦然）。实际 `make` 用 `-std=c++11 -Wall -Wextra` 编译干净。**别被误导去"修"它。**
 
 ## 约定
