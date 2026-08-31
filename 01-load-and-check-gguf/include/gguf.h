@@ -1,24 +1,14 @@
 // gguf.h - GGUF 文件裸解析器（load + check）
 //
-// 这是教程 01 章的自包含实现：只解析 GGUF 文件的元数据（header、KV、tensor 信息）
-// 并对它们做一致性校验，不依赖 ggml 的 tensor/context，也不 mmap 权重数据。
+// 教程 01 章的自包含实现：只解析 GGUF 文件的元数据（header、KV、tensor 信息）
+// 并做一致性校验，不依赖 ggml 的 tensor/context，也不 mmap 权重数据。
+// 本机是 64 位小端（macOS），GGUF 固定小端，直接 memcpy 读即可。
 //
-// 设计原则（与 llama.cpp 上游逻辑一一对应，见参考文献）：
-//   - 文件布局  : ggml/include/gguf.h（头部注释的结构定义）
-//   - 读取顺序  : ggml/src/gguf.cpp（gguf_init_from_file 的实现）
-//   - 越界校验  : src/llama-model-loader.h（llama_tensor_weight 的 bounds 检查）
-//
-// 命名对齐：本文件里的类型名尽量跟上游 llama.cpp 一致——
-//   - gguf_context     对应上游 ggml/src/gguf.cpp 的 struct gguf_context
-//   - gguf_tensor_info 对应上游 ggml/src/gguf.cpp 的 struct gguf_tensor_info
-//   - gguf_kv          对应上游 ggml/src/gguf.cpp 的 struct gguf_kv
-//
-// 阶段边界（与 llama.cpp 真实分层对齐）：
-//   本文件 = 只读元数据（对应 gguf_context 阶段）
-//   02 章   = 再用这些元数据创建 ggml_tensor、映射权重（对应 llama_model_loader）
-//   03 章   = 推理
-//
-// 本机是 64 位小端环境（macOS x86），GGUF 固定小端，所以直接 memcpy 读即可。
+// 与上游对应关系（详见本目录 reference.md）：
+//   布局   : ggml/include/gguf.h（头部注释结构定义）
+//   读取   : ggml/src/gguf.cpp（gguf_init_from_file）
+//   越界校验: src/llama-model-loader.h（llama_tensor_weight 的 bounds 检查）
+//   命名对齐: gguf_context / gguf_tensor_info / gguf_kv 对应上游同名 struct
 
 #pragma once
 
@@ -35,8 +25,8 @@
 #define GGML_MAX_DIMS 4
 #define GGML_MAX_NAME 64
 
-// GGML TYPE 的枚举。本项目 tinybrainbot-100m-v3-instruct-f16 只用未量化的
-// F32 和 F16 两种，所以这里只列这两个（真正的 llama.cpp 里有几十种类型）。
+// GGML TYPE 枚举。本项目 tinybrainbot 只用未量化的 F32/F16 两种，
+// 真正的 llama.cpp 里有几十种类型。
 enum ggml_type_min
 {
     GGML_TYPE_F32 = 0,
@@ -64,10 +54,9 @@ enum gguf_type
 namespace gguf
 {
 
-    // ---- 每种张量类型的形状参数（对应 ggml.h 里的 ggml_type_traits 表） ----
-    // 上游 schema 每行都有 blck_size 和 type_size 两个字段（见 ggml.h 2890-2898）；
-    // 本项目只用到未量化的 F32/F16，它们的 blck_size 恒为 1，所以 type_size 恰好
-    // 就等于“每元素字节数”。这里同样保留两个字段，和上游保持一致。
+    // ---- 每种张量类型的形状参数（对应 ggml.h 的 ggml_type_traits 表） ----
+    // 上游每行有 blck_size 和 type_size 两字段（ggml.h 2890-2898）；
+    // 未量化类型 blck_size 恒为 1，故 type_size = 每元素字节数。保留两字段与上游对齐。
     struct type_trait
     {
         std::string name;

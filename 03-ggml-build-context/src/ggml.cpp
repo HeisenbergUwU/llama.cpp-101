@@ -3,9 +3,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-// 只能在 ggml 中进行修改结构体内部变量，其他 cpp 文件如果修改一下结构体变量将不能通过编译。
-// ggml_object / ggml_context 是 ggml 内部实现(藏在 namespace ggml 里)，
-// 外部只拿到 ggml_context 的不透明句柄，看不到内部字段。
+// ggml_object / ggml_context 是 ggml 内部实现：字段藏在这里，
+// 外部只拿不透明句柄，看不到内部字段（别的 cpp 直接改会编译不过）。
 
 namespace ggml
 {
@@ -40,7 +39,6 @@ namespace ggml
     };
 
     // ---- 类型参数表：F32 / F16（03 章只加载、不做量化）----
-    // block_size 每 block 元素数（未量化=1）、type_size 每 block 字节数。
     // to_float / from_float_ref 的解量化实现留到推理章，这里先空着。
     static const ggml_type_traits type_traits[] = {
         /* 0 = F32 */ {"f32", 1, sizeof(float), false, NULL, NULL},

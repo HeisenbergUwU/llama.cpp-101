@@ -1,18 +1,12 @@
 // llama-io.h - 04 章「文件 IO 封装层」接口
 //
-// 把裸操作系统调用(open/fstat/mmap/munmap/close/fread/fseek)封装成两个小类型，
-// 让上层(gguf / llama_model)不直接碰系统调用，只看得到「文件」「映射」两个概念。
-// 对齐上游 llama.cpp/src/llama-mmap.h 里的 llama_file 与 llama_mmap，
-// 但教程版去掉了 pimpl，直接暴露成员，方便读者看穿每一层。
+// 把裸系统调用（open/fstat/mmap/munmap/close/fread/fseek）封装成两个小类型，
+// 让上层（gguf / llama_model）不直接碰系统调用，只看得到「文件」「映射」两个概念。
+// 对齐上游 llama.cpp/src/llama-mmap.h 的 llama_file 与 llama_mmap，但教程版
+// 去掉 pimpl，直接暴露成员，方便读者看穿每一层。
 //
-// llama_file 与上游一致：内部持有 FILE*（用缓冲顺序读元数据），
-// 同时暴露底层 fd（用 fileno 取出，供 mmap 零拷贝用）——一份句柄两种用法。
-// llama_mmap 只负责把整个文件映射进地址空间。
-//
-// 为什么单独抽这一层(呼应本项目分层):
-//   - 逻辑计算(ggml 建 tensor、gguf 解析)不该掺和 OS 细节。
-//   - mmap 是"把文件零拷贝挂进地址空间"的唯一手段，值得单独讲清。
-//   01(gguf)/03(ggml) 被拉进 04 章后，文件操作都改走这一层。
+// llama_file：内部持 FILE*（缓冲顺序读元数据），同时暴露底层 fd（供 mmap 零拷贝）。
+// llama_mmap：只负责把整个文件映射进地址空间。
 
 #pragma once
 
@@ -49,6 +43,9 @@ namespace llama
         {
             return read_at(offset, &out, sizeof(T));
         }
+
+        llama_file(const llama_file &) = delete;
+        llama_file &operator=(const llama_file &) = delete;
     };
 
     // ---- 内存映射封装:mmap + munmap ----
@@ -65,6 +62,14 @@ namespace llama
         // 把整个文件按只读映射进地址空间。依赖 llama_file 已合法打开。
         explicit llama_mmap(const llama_file &file);
         ~llama_mmap(); // munmap(addr, size)
+
+        // 移动:接管另一份映射的 addr/size,把源置空(避免双 munmap)。
+        // 需要移动是因为 llama_model 会持有 llama_mmap(从局部临时 std::move 进来)。
+        llama_mmap(llama_mmap &&other) noexcept;
+        llama_mmap &operator=(llama_mmap &&other) noexcept;
+
+        llama_mmap(const llama_mmap &) = delete;            // 用到了编译就报错
+        llama_mmap &operator=(const llama_mmap &) = delete; // 用到了编译就报错
     };
 
 } // namespace llama

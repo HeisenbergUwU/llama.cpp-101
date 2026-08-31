@@ -1,8 +1,8 @@
 // gguf.cpp - GGUF 文件裸解析器实现（load + check）
 //
-// 读取逻辑对照上游 llarger.cpp 的 gguf_init_from_file（ggml/src/gguf.cpp），
-// 校验逻辑对照 llama_model_loader::llama_tensor_weight（src/llama-model-loader.h）。
-// 因为是教程实现，省略了端序转换、多分片、mmap 等，聚焦"怎么读 + 怎么查"。
+// 读取逻辑对照上游 ggml/src/gguf.cpp 的 gguf_init_from_file，
+// 校验逻辑对照 src/llama-model-loader.h 的 llama_tensor_weight。
+// 教程实现：省去端序转换、多分片、mmap 等，只讲"怎么读 + 怎么查"。
 
 #include "gguf.h"
 
@@ -12,9 +12,7 @@
 namespace gguf
 {
 
-    // 跨文件读取时的游标式顺序读取辅助（对应 gguf.cpp 里 file_remain/read 这类 static helper 的习惯）。
-    // 文件内部辅助都用 static（内部链接），与上游 gguf.cpp 保持一致的写法。
-
+    // 跨文件读取的游标式顺序读取辅助（与上游 gguf.cpp 的 static helper 一致写法）
     static bool read_at(FILE *f, uint64_t offset, void *out, size_t len)
     {
         if (fseek(f, offset, SEEK_SET) != 0)
@@ -31,34 +29,28 @@ namespace gguf
         return true;
     }
 
-    // 读一个 GGUF 字符串：存储格式是 [u64 长度][字节]，所以分两步——
-    //   ① 先读前 8 字节拿到长度 len（这个长度是格式里固定存的，读到才知道）
-    //   ② 再按 len 读 len 个字节的字符串本体（不含结尾 '\0'）
-    // 读完把游标 pos 前进到字符串末尾，方便调用方接着读下一个字段。
+    // 读一个 GGUF 字符串：[u64 长度][len 个字节]（不含结尾 '\0'），读完推进游标 pos。
     static bool read_string(FILE *f, uint64_t &pos, std::string &out, std::string &err, const char *what, uint64_t file_size)
     {
         uint64_t len = 0;
-        // ① 读长度字段（u64，8 字节）；失败说明文件在这里就断了
         if (!read_le(f, pos, len))
         {
             err = std::string("unexpected EOF reading ") + what + " length";
             return false;
         }
-        // ②③ 越界校验：len 不能超过文件大小，读到末尾也不能越过文件尾（防止损坏文件）
+        // 越界校验：len 不能超过文件大小，读到末尾也不能越过文件尾（防损坏文件）
         if (len > file_size || pos + len > file_size)
         {
             err = std::string(what) + " length out of bounds";
             return false;
         }
-        // ④ 按 len 扩容 std::string，预留空间装字符串
         out.resize(len);
-        // ⑤ 从 pos 读 len 个字节填进 out；&out[0] 是字符串内部缓冲区的起始地址
+        // &out[0] 是 std::string 内部缓冲区的起始地址
         if (!read_at(f, pos, &out[0], len))
         {
             err = std::string("unexpected EOF reading ") + what;
             return false;
         }
-        // ⑥ 游标前进 len，指向下一个字段
         pos += len;
         return true;
     }
@@ -145,15 +137,15 @@ namespace gguf
             kv.type = vt;
 
             if (vt == GGUF_TYPE_ARRAY)
-            { // ARRAY：先读元素类型，再读元素个数
+            {
                 int32_t et = 0;
                 uint64_t n = 0;
-                if (!read_le(f, pos, et)) // read an element of Type
+                if (!read_le(f, pos, et))
                 {
                     err = "unexpected EOF reading array type";
                     return false;
                 }
-                if (!read_le(f, pos, n)) // number of byte
+                if (!read_le(f, pos, n))
                 {
                     err = "unexpected EOF reading array count";
                     return false;
@@ -193,7 +185,7 @@ namespace gguf
                             return false;
                         }
                         pos += sz;
-                        // 转成十进制字符串（f32/f64 转成整数形式便于演示，够用即可）
+                        // 二进制值转可读字符串（f32/f64 直接读成数值）
                         if (et == GGUF_TYPE_FLOAT32)
                         {
                             float x;
@@ -426,7 +418,7 @@ namespace gguf
             return false;
         }
         pos += 4;
-        if (memcmp(magic, GGUF_MAGIC, 4) != 0) // 对比 4个字节
+        if (memcmp(magic, GGUF_MAGIC, 4) != 0)
         {
             err = "bad magic (not a GGUF file)";
             fclose(f);

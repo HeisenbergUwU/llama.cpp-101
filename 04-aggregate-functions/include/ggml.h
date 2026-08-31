@@ -1,24 +1,12 @@
 // ggml.h - 迷你 ggml：数据结构声明 + 加载层函数接口（03 章）
 //
-// 这是教程 03 章的**接口层**：在 02 章类型层（ggml_type / ggml_tensor /
-// ggml_context / ggml_object_type 等结构）之上，补充池子分配 API 的
-// **函数声明**。实现放在 ggml.cpp。
-//
-// 命名与字段对齐上游 llama.cpp/ggml/include/ggml.h（结构体）与
-// ggml/src/ggml.c（ggml_context / ggml_object 的内部定义）。
-//
+// 教程 03 章的接口层：在 02 章类型层（ggml_type / ggml_tensor / ggml_context
+// 等结构）之上，补充池子分配 API 的函数声明。实现放在 ggml.cpp。
+// 命名与字段对齐上游 llama.cpp/ggml/include/ggml.h 与 ggml/src/ggml.c。
 // 所有类型放进 `namespace ggml`，避免与 01 章的全局 `GGML_TYPE_*` 冲突。
 //
-// 阶段边界：
-//   02 章 = 数据结构（ggml_type / ggml_tensor / ggml_context / 池子分配）
-//   03 章 = 加载层：把池子分配真正写出来（ggml_init / ggml_new_tensor_* /
-//           ggml_set_name / ggml_nbytes），让「往池子里实例化张量」可运行
-//   04 章 = 用 03 的能力建 llama_model（GGUF -> 110 个 tensor + mmap 零拷贝）
-//   推理  = 建图 / op（ggml_op / ggml_cgraph 等，后续章节再补）
-//
-// 面向的模型：tinybrainbot（讲解主模型，110 tensor）只用 F32 / F16，
-// 所以 enum ggml_type 与 type_traits 只保留这两个类型。编号照抄上游
-// （F32=0 / F16=1），和 GGUF 文件里的 int32 完全一致。
+// 面向的模型：tinybrainbot（F16 主模型）只用 F32 / F16。枚举编号照抄上游
+// （F32=0 / F16=1），和 GGUF 文件里的 int32 一致。
 
 #pragma once
 
@@ -37,22 +25,15 @@ namespace ggml
     typedef void (*ggml_from_float_t)(float *x, void *y, int64_t k);
 
     // ---- 张量数据类型 ----
-    // 编号对应 GGUF 文件里 tensor info 的 type（int32），**必须与上游一致**。
-    // 03 章面向 tinybrainbot（F16 主模型），只用 F32 / F16 两个：
-    //   GGML_TYPE_F32  = 0（tinybrainbot 25 个）
-    //   GGML_TYPE_F16  = 1（tinybrainbot 85 个）
-    // 其余（Q1_0/Q4_K/Q6_K 等几十种量化）本章用不到，故不列。
+    // 编号对应 GGUF 文件里 tensor info 的 type（int32），必须与上游一致。
     enum ggml_type
     {
-        GGML_TYPE_F32 = 0,
-        GGML_TYPE_F16 = 1,
+        GGML_TYPE_F32 = 0, // tinybrainbot 25 个
+        GGML_TYPE_F16 = 1, // tinybrainbot 85 个
     };
 
-    // 每种类型的形状参数（blck_size / type_size 用来把「元素个数」换算成「字节数」）。
-    // 字段取自上游 ggml_type_traits（ggml.h 2510 行）的**本项目用到的部分**：
-    //   - blck_size / type_size / is_quantized / type_name
-    // 上游还有一个 blck_size_interleave（量化数据重排优化，见 ggml-cpu/repack.cpp，
-    // 与 tensor 布局 nb[] 无关），本项目不涉及，故不在此结构体中。
+    // 每种类型的形状参数（blck_size / type_size 把「元素个数」换算成「字节数」）。
+    // 字段取自上游 ggml_type_traits（ggml.h 2510 行）的本项目用到的部分。
     struct ggml_type_traits
     {
         const char *type_name; // 人们可读的名字，如 "f32" / "f16"
@@ -64,29 +45,21 @@ namespace ggml
     };
 
     // ---- tensor ----
-    // 一个 n 维张量的「结构 + 数据指针」。这是池子里的核心对象。
-    //
-    // 字段裁剪说明（对齐上游 ggml_tensor，ggml.h 680 行）：
-    //   保留加载 / 布局所需：type、ne[]、nb[]、data、name，
-    //   以及 mmap 零拷贝挂数据所需的 view_src / view_offs。
-    //   暂不引入（后续推理 / 后端章节再补）：
-    //     - op / op_params / src[] / flags（建图、op 语义）
-    //     - buffer / extra（backend buffer 管理）
+    // 一个 n 维张量的「结构 + 数据指针」，是池子里的核心对象。
+    // 字段对齐上游 ggml_tensor（ggml.h 680 行），保留加载/布局所需，
+    // 暂不引入 op/src[]/buffer 等建图、后端字段（后续章节再补）。
     struct ggml_tensor
     {
         enum ggml_type type; // 数据类型
 
         int64_t ne[GGML_MAX_DIMS]; // 每维元素数；ne[0] 是行内元素数（行主序）
-        size_t nb[GGML_MAX_DIMS];  // 每维的字节步长（stride）：
-                                   //   nb[0] = 每元素字节数
-                                   //   nb[1] = nb[0] * (ne[0] / blck_size)
-                                   //   nb[i] = nb[i-1] * ne[i-1]
+        size_t nb[GGML_MAX_DIMS];  // 每维字节步长：nb[0]=每元素字节数，nb[i]=nb[i-1]*ne[i-1]
 
-        // 若这个 tensor 是某个 tensor 的 view（mmap 零拷贝挂数据用）：
+        // mmap 零拷贝挂数据用：若此 tensor 是另一个的 view
         struct ggml_tensor *view_src; // 源 tensor（NULL 表示不是 view）
         size_t view_offs;             // 相对源 data 的字节偏移
 
-        void *data; // 存放数据的指针（mmap 零拷贝时指向 mmap 基址 + 偏移）
+        void *data; // 数据指针（mmap 零拷贝时指向 mmap 基址 + 偏移）
 
         char name[GGML_MAX_NAME]; // 张量名，如 "token_embd.weight"
     };
@@ -114,8 +87,8 @@ namespace ggml
     };
 
     // ==== 03 章·加载层函数接口 ====
-    // 在 02 章类型层之上，把「往池子里实例化张量」的 API 声明出来。
-    // 实现都在 ggml.cpp。对齐上游 ggml/src/ggml.c 的对应函数。
+    // 在 02 章类型层之上，声明「往池子里实例化张量」的 API，实现都在 ggml.cpp，
+    // 对齐上游 ggml/src/ggml.c 的对应函数。
 
     // 建池：calloc 一块连续内存（params.mem_buffer==NULL 时内部自分配），
     // 初始化 objects_begin/end 空链表；返回不透明句柄，失败返回 NULL。
@@ -142,8 +115,7 @@ namespace ggml
     //   (ne[0]/blck_size) × type_size × ne[1] × ne[2] × ne[3]
     size_t ggml_nbytes(const ggml_tensor *tensor);
 
-    // ==== 以下为推理（建图遍历）阶段的结构，03 阶段已声明、暂不使用 ====
-    // （保留，使后续建图章无需回头改头文件）
+    // ==== 后续建图章节的结构，03 先声明、暂不使用 ====
 
     // 推理时候图遍历方向
     enum ggml_cgraph_eval_order
@@ -162,17 +134,15 @@ namespace ggml
 
     struct ggml_cgraph
     {
-        int size;    // maximum number of nodes/leafs/grads/grad_accs
-        int n_nodes; // number of nodes currently in use
-        int n_leafs; // number of leafs currently in use
+        int size;    // 最大容量
+        int n_nodes; // 当前节点数
+        int n_leafs; // 当前叶子数
 
-        struct ggml_tensor **nodes; // tensors with data that can change if the graph is evaluated
-        // eval only in this program, grad not needed
+        struct ggml_tensor **nodes; // 节点：data 会随求值变化
+        struct ggml_tensor **leafs; // 叶子：常量/输入，data 不变
 
-        struct ggml_tensor **leafs; // tensors with constant data
-        int32_t *use_counts;        // number of uses of each tensor, indexed by hash table slot
-
-        struct ggml_hash_set visited_hash_set;
+        int32_t *use_counts;                   // 每个 tensor 的引用次数（判"输入是否齐"）
+        struct ggml_hash_set visited_hash_set; // 判重（防环）
 
         enum ggml_cgraph_eval_order order;
 

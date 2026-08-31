@@ -1,12 +1,12 @@
 // llama-model.h - 05 章「建 llama_model 聚合对象 + 加载权重」接口（最小化）
 //
 // 只声明结构与函数，实现留 src/llama-model.cpp。05 章撮合前几章：
-//   01 gguf：解析文件，给每个 tensor 的 offset/type/ne/name（临时调用）
+//   01 gguf：解析文件，给每个 tensor 的 offset/type/ne/name
 //   03 ggml：内存池，实例化 ggml_tensor（no_alloc=true，data 留钩子）
 //   04 llama-io：llama_mmap 映射整个文件，让 tensor->data 零拷贝指向文件
 //
 // 范围：只到「持有 110 个 ggml_tensor + mmap 映射」，不建图、不执行、
-// 不做 hparams/vocab、不拷权重。故不引入上游那套 llama_model_params
+// 不做 hparams/vocab、不拷权重。故不引入上游的 llama_model_params
 // （设备 offload / kv override / 进度回调等），留待推理章再说。
 
 #pragma once
