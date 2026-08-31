@@ -31,46 +31,6 @@ namespace llama
             ggml::ggml_free(ctx);
         }
     }
-
-    // 把 gguf_type 枚举值转成可读名（对照 gguf.h 的 enum gguf_type）
-    // 仅在 LLAMA_MODEL_VERBOSE 打印 KV 时用到
-#if defined(LLAMA_MODEL_VERBOSE)
-    static std::string kv_type_name(int64_t t)
-    {
-        switch (t)
-        {
-        case 0:
-            return "UINT8";
-        case 1:
-            return "INT8";
-        case 2:
-            return "UINT16";
-        case 3:
-            return "INT16";
-        case 4:
-            return "UINT32";
-        case 5:
-            return "INT32";
-        case 6:
-            return "FLOAT32";
-        case 7:
-            return "BOOL";
-        case 8:
-            return "STRING";
-        case 9:
-            return "ARRAY";
-        case 10:
-            return "UINT64";
-        case 11:
-            return "INT64";
-        case 12:
-            return "FLOAT64";
-        default:
-            return "?";
-        }
-    }
-#endif
-
     // ---- 加载入口：把 GGUF 文件加载成 llama_model ----
     // 用局部变量先做全部工作，最后一次性写进 llm —— 这样中途失败时
     // llm 保持「全空」的安全初始态，析构不会双重释放。
@@ -116,40 +76,6 @@ namespace llama
         {
             return false;
         }
-
-        // 打印解析出的顶级元数据：GGUF 文件头 + 数据段起点（对应测试输出的 data_offset）
-        // 默认不打印（仅 05 章教学演示用）：通知多、干扰 07 的 tokenizer 测试输出。
-        // 想看时用 make CXXFLAGS+='-DLLAMA_MODEL_VERBOSE' 开启。
-#if defined(LLAMA_MODEL_VERBOSE)
-        std::printf("gguf_context info:\n");
-        std::printf("  version   = %u\n", gguf_context.version);
-        std::printf("  n_tensors = %lld\n", (long long)gguf_context.n_tensors);
-        std::printf("  n_kv      = %lld\n", (long long)gguf_context.n_kv);
-        std::printf("  alignment = %u\n", gguf_context.alignment);
-        std::printf("  offset    = 0x%llx (数据段起点)\n", (unsigned long long)gguf_context.offset);
-        std::printf("  file_size = %llu\n", (unsigned long long)gguf_context.file_size);
-        std::printf("  gguf_context_size = %llu\n", (unsigned long long)sizeof(gguf_context));
-        for (size_t i = 0; i < gguf_context.kv.size(); i++)
-        {
-            const gguf::gguf_kv &kv = gguf_context.kv[i];
-            std::printf("  kv[%zu] type=%lld %-12s %s = %s\n", i, (long long)kv.type,
-                        kv_type_name(kv.type).c_str(), kv.key.c_str(),
-                        gguf::fmt_value(kv).c_str());
-        }
-        // 打印所有 tensor 的元数据：名字/维度/形状/类型/段内偏移/字节数
-        std::printf("  tensors (%lld):\n", (long long)gguf_context.n_tensors);
-        for (size_t i = 0; i < gguf_context.info.size(); i++)
-        {
-            const gguf::gguf_tensor_info &ti = gguf_context.info[i];
-            std::printf("    [%02zu] name=%-28s dims=%lld ne=(%lld,%lld,%lld,%lld) type=%lld offset=0x%llx nbytes=%lld\n",
-                        i, ti.name.c_str(), (long long)ti.n_dims,
-                        (long long)ti.ne[0], (long long)ti.ne[1],
-                        (long long)ti.ne[2], (long long)ti.ne[3],
-                        (long long)ti.type,
-                        (unsigned long long)ti.offset,
-                        (long long)ti.nbytes);
-        }
-#endif
 
         // ---- 4. ggml_init：建迷你 ggml 池子（大小按 tensor 个数动态算） ----
         // no_alloc=true：不为 tensor 数据留空间，data 留空由 mmap 填，池子只装结构。

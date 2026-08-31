@@ -11,9 +11,9 @@ SRC = src/llama-hparams.cpp src/llama-model.cpp src/gguf.cpp src/ggml.cpp src/ll
 
 all: $(TARGET)
 
-$(TARGET): $(SRC) tests/test-llama-model-layer.cpp include/*.h
+$(TARGET): $(SRC) tests/test-llama-model-assembly.cpp include/*.h
 	$(CXX) $(CXXFLAGS) $(INCLUDES) \
-		$(SRC) tests/test-llama-model-layer.cpp -o $(TARGET)
+		$(SRC) tests/test-llama-model-assembly.cpp -o $(TARGET)
 
 run: $(TARGET)
 	./$(TARGET) $(MODEL)

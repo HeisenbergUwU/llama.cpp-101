@@ -40,7 +40,11 @@
 | 03 | 迷你 ggml 加载层（池子分配函数） | `ggml/src/ggml.c` | ✅ |
 | 04 | 文件 IO 封装层（`llama_file` + `llama_mmap`） | `llama.cpp/src/llama-mmap.*` | ✅ |
 | 05 | `llama_model` 聚合对象 + 加载权重（mmap 零拷贝） | `llama-model-loader.*` + `llama-model.*` | ✅ |
-| 06+ | 模型语义 / 前向 / 采样 / server | ggml 计算图 + `llama_context` + server | ⬜ 规划中 |
+| 06 | 模型语义：HParams + Layer/Model 组装 | `llama-hparams.*` + `llama-model.h` | ✅ |
+| 07 | 词表 Vocab：tokenize / detokenize | `llama-vocab.h/.cpp` | ✅ |
+| 08 | `llama_model` 整合（当前为 07 的延续，规划 context/KV） | `llama-context.*` / `llama-kv-cache.*` | ⬜ 进行中 |
+
+> `06+` 之后的分章（前向算子、KV cache、采样、server…）见 `ROADMAP.md`。
 
 ---
 
@@ -56,11 +60,14 @@ llama.cpp-101/
 ├── 03-ggml-build-context/         # 03 章：迷你 ggml 加载层（池子分配函数）
 ├── 04-aggregate-functions/        # 04 章：文件 IO 封装层（llama_file + llama_mmap）
 ├── 05-llama-model-load/           # 05 章：建 llama_model 聚合对象 + 加载权重
+├── 06-llama-model-assembly/       # 06 章：模型语义（HParams + Layer/Model 组装）
+├── 07-llama-model-vocab/          # 07 章：词表 Vocab（tokenize / detokenize）
+├── 08-llama-model/                # 08 章：llama_model 整合（进行中）
 ├── ROADMAP.md                     # 权威分章路线图（改动分章前先读它）
 └── AGENTS.md                      # 协作者 / 贡献者须知
 ```
 
-> `llama.cpp/`、`resources/`、`.omo/`、`playground/` 均被 git 忽略；每个可构建章节自带源码、测试与 Makefile（04/05 自包含，含前几章代码的本地拷贝）。
+> `llama.cpp/`、`resources/`、`.omo/`、`playground/` 均被 git 忽略；每个可构建章节自带源码、测试与 Makefile（04+ 自包含，含前几章代码的本地拷贝）。
 
 **快速开始：**
 
@@ -70,6 +77,9 @@ cd 01-load-and-check-gguf && make run
 
 # 05 章：完整加载 llama_model（110 个 tensor，mmap 零拷贝），8GB 内存也能跑
 cd 05-llama-model-load && make run
+
+# 07 章：词表 Vocab，中文/英文 tokenize<->detokenize 往返
+cd 07-llama-model-vocab && make run
 ```
 
 ---
@@ -121,7 +131,11 @@ Following llama.cpp's real layering, chapter by chapter from "reading the file" 
 | 03 | Mini ggml load layer (pool allocators) | `ggml/src/ggml.c` | ✅ |
 | 04 | File I/O wrapper (`llama_file` + `llama_mmap`) | `llama.cpp/src/llama-mmap.*` | ✅ |
 | 05 | `llama_model` aggregate + load weights (mmap zero-copy) | `llama-model-loader.*` + `llama-model.*` | ✅ |
-| 06+ | Model semantics / forward / sampling / server | ggml graph + `llama_context` + server | ⬜ planned |
+| 06 | Model semantics: HParams + Layer/Model assembly | `llama-hparams.*` + `llama-model.h` | ✅ |
+| 07 | Vocab: tokenize / detokenize | `llama-vocab.h/.cpp` | ✅ |
+| 08 | `llama_model` integration (currently continuation of 07; planned context/KV) | `llama-context.*` / `llama-kv-cache.*` | ⬜ in progress |
+
+> Chapters after `06+` (forward ops, KV cache, sampling, server...) live in `ROADMAP.md`.
 
 ### Layout
 
@@ -135,11 +149,14 @@ llama.cpp-101/
 ├── 03-ggml-build-context/         # Ch.03: mini ggml load layer (pool allocators)
 ├── 04-aggregate-functions/        # Ch.04: file I/O wrapper (llama_file + llama_mmap)
 ├── 05-llama-model-load/           # Ch.05: llama_model aggregate + load weights
+├── 06-llama-model-assembly/       # Ch.06: model semantics (HParams + Layer/Model assembly)
+├── 07-llama-model-vocab/          # Ch.07: vocab (tokenize / detokenize)
+├── 08-llama-model/                # Ch.08: llama_model integration (in progress)
 ├── ROADMAP.md                     # authoritative chapter roadmap
 └── AGENTS.md                      # contributor notes
 ```
 
-> `llama.cpp/`, `resources/`, `.omo/`, `playground/` are git-ignored; each buildable chapter ships its own source, test, and Makefile (04/05 are self-contained with local copies of prior chapters).
+> `llama.cpp/`, `resources/`, `.omo/`, `playground/` are git-ignored; each buildable chapter ships its own source, test, and Makefile (04+ are self-contained with local copies of prior chapters).
 
 **Get started:**
 
@@ -149,4 +166,7 @@ cd 01-load-and-check-gguf && make run
 
 # Ch.05: full llama_model load (110 tensors, mmap zero-copy), runs on 8GB RAM
 cd 05-llama-model-load && make run
+
+# Ch.07: vocab, Chinese/English tokenize<->detokenize round-trip
+cd 07-llama-model-vocab && make run
 ```
