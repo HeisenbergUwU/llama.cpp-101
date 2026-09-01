@@ -15,3 +15,6 @@ playground/**
 04-aggregate-functions/test-*
 05-llama-model-load/test-*
 04-llama-model-load/test-*
+08-llama-model-kernel/test-*
+08-llama-model-kernel/build/
+08-llama-model-kernel/build-kernel/

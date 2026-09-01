@@ -40,4 +40,4 @@ python3 tests/export_vocab_json.py ../resources/tinybrainbot-100m-v3-instruct/ti
 
 ---
 
-下一章：**08 - `llama_model` 整合**（进行中）。
+下一章：**08 - 完整前向**（先从「前向输入结构 ForwardInput」起步，后续逐步写计算；进度见 `ROADMAP.md`）。

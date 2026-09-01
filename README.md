@@ -42,9 +42,11 @@
 | 05 | `llama_model` 聚合对象 + 加载权重（mmap 零拷贝） | `llama-model-loader.*` + `llama-model.*` | ✅ |
 | 06 | 模型语义：HParams + Layer/Model 组装 | `llama-hparams.*` + `llama-model.h` | ✅ |
 | 07 | 词表 Vocab：tokenize / detokenize | `llama-vocab.h/.cpp` | ✅ |
-| 08 | `llama_model` 整合（当前为 07 的延续，规划 context/KV） | `llama-context.*` / `llama-kv-cache.*` | ⬜ 进行中 |
+| 08 | 完整前向（全量重算）→ logits + argmax | `src/models/llama.cpp`（`graph<false>`） | ✅ |
+| 09 | 自回归采样（greedy，处理 EOG/max_tokens） | `llama-sampling.*` | ⬜ 规划 |
+| 10 | 最小 CPU server（`POST /v1/chat/completions`） | `tools/server` / `common/` | ⬜ 规划 |
 
-> `06+` 之后的分章（前向算子、KV cache、采样、server…）见 `ROADMAP.md`。
+> `08+` 的排期见 `ROADMAP.md`（server-first 快路径：先 08→09→10 拿 CPU server 出文本，KV cache/batch 延后为 11/12 优化章节，逐算子深挖在 13+）。
 
 ---
 
@@ -62,7 +64,7 @@ llama.cpp-101/
 ├── 05-llama-model-load/           # 05 章：建 llama_model 聚合对象 + 加载权重
 ├── 06-llama-model-assembly/       # 06 章：模型语义（HParams + Layer/Model 组装）
 ├── 07-llama-model-vocab/          # 07 章：词表 Vocab（tokenize / detokenize）
-├── 08-llama-model/                # 08 章：llama_model 整合（进行中）
+├── 08-llama-model/                # 08 章：完整前向（embed→GQA 注意力→SwiGLU→lm_head→logits）
 ├── ROADMAP.md                     # 权威分章路线图（改动分章前先读它）
 └── AGENTS.md                      # 协作者 / 贡献者须知
 ```
@@ -80,6 +82,9 @@ cd 05-llama-model-load && make run
 
 # 07 章：词表 Vocab，中文/英文 tokenize<->detokenize 往返
 cd 07-llama-model-vocab && make run
+
+# 08 章：完整前向，tokenize 提示 -> logits -> argmax 出下一个 token
+cd 08-llama-model && make run
 ```
 
 ---
@@ -133,9 +138,11 @@ Following llama.cpp's real layering, chapter by chapter from "reading the file" 
 | 05 | `llama_model` aggregate + load weights (mmap zero-copy) | `llama-model-loader.*` + `llama-model.*` | ✅ |
 | 06 | Model semantics: HParams + Layer/Model assembly | `llama-hparams.*` + `llama-model.h` | ✅ |
 | 07 | Vocab: tokenize / detokenize | `llama-vocab.h/.cpp` | ✅ |
-| 08 | `llama_model` integration (currently continuation of 07; planned context/KV) | `llama-context.*` / `llama-kv-cache.*` | ⬜ in progress |
+| 08 | Full forward (full recompute) → logits + argmax | `src/models/llama.cpp` (`graph<false>`) | ✅ |
+| 09 | Autoregressive sampling (greedy, EOG/max_tokens) | `llama-sampling.*` | ⬜ planned |
+| 10 | Minimal CPU server (`POST /v1/chat/completions`) | `tools/server` / `common/` | ⬜ planned |
 
-> Chapters after `06+` (forward ops, KV cache, sampling, server...) live in `ROADMAP.md`.
+> Chapters after `08+` follow `ROADMAP.md` (server-first fast path: 08→09→10 to get CPU server text output; KV cache/batch deferred to 11/12 optimization chapters; per-op deep-dive in 13+).
 
 ### Layout
 
@@ -151,7 +158,7 @@ llama.cpp-101/
 ├── 05-llama-model-load/           # Ch.05: llama_model aggregate + load weights
 ├── 06-llama-model-assembly/       # Ch.06: model semantics (HParams + Layer/Model assembly)
 ├── 07-llama-model-vocab/          # Ch.07: vocab (tokenize / detokenize)
-├── 08-llama-model/                # Ch.08: llama_model integration (in progress)
+├── 08-llama-model/                # Ch.08: full forward (embed→GQA attn→SwiGLU→lm_head→logits)
 ├── ROADMAP.md                     # authoritative chapter roadmap
 └── AGENTS.md                      # contributor notes
 ```
@@ -169,4 +176,7 @@ cd 05-llama-model-load && make run
 
 # Ch.07: vocab, Chinese/English tokenize<->detokenize round-trip
 cd 07-llama-model-vocab && make run
+
+# Ch.08: full forward, tokenize prompt -> logits -> argmax next token
+cd 08-llama-model && make run
 ```

@@ -31,6 +31,7 @@ namespace llama
             ggml::ggml_free(ctx);
         }
     }
+
     // ---- 加载入口：把 GGUF 文件加载成 llama_model ----
     // 用局部变量先做全部工作，最后一次性写进 llm —— 这样中途失败时
     // llm 保持「全空」的安全初始态，析构不会双重释放。

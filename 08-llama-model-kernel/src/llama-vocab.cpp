@@ -138,13 +138,6 @@ namespace llama
             }
         }
 
-        // 打印全部 token：id -> text（调试/教学用，32000 行）
-        std::printf("--- vocab tokens (%d) ---\n", n_vocab);
-        for (int32_t i = 0; i < n_vocab; ++i)
-        {
-            std::printf("[%d] %s\n", i, tokens[i].text.c_str());
-        }
-
         // 特殊 token id
         read_u32(ctx, "tokenizer.ggml.bos_token_id", (uint32_t &)id_bos);
         read_u32(ctx, "tokenizer.ggml.eos_token_id", (uint32_t &)id_eos);
