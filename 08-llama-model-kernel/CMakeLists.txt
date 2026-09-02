@@ -43,12 +43,3 @@ add_library(llama-forward STATIC
     src/llama-vocab.cpp)
 target_include_directories(llama-forward PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(llama-forward PUBLIC kernel)
-
-# ---------- test-llama-forward：整体前向（需模型） ----------
-add_executable(test-llama-forward tests/test-llama-forward.cpp)
-target_link_libraries(test-llama-forward PRIVATE llama-forward)
-
-# ---------- 便捷运行目标（整体前向） ----------
-add_custom_target(run-forward
-    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/test-llama-forward ${TINYBRAINBOT_MODEL}
-    DEPENDS test-llama-forward)
