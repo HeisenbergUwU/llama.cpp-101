@@ -81,26 +81,20 @@ N 个 token 的 K/V 填进 KVSlice"这个动作刻意藏在 `forward()` 内部�
 
 ```cpp
 namespace kernel {
-    float fp16_to_fp32(uint16_t h);                                    // 纯标量原语
-    bool  check_shape(const ggml::ggml_tensor* t, int n_dims, const int64_t* need_ne); // 共享维度校验
+    float fp16_to_fp32(uint16_t h);
     void  dequant_row(const ggml::ggml_tensor* W, int row, float* dst); // 唯一懂 F16 的函数
-    bool  rms_norm(const ggml::ggml_tensor* x, const ggml::ggml_tensor* W, float eps, ggml::ggml_tensor* out);
-    bool  matmul(const ggml::ggml_tensor* x, const ggml::ggml_tensor* W, float* scratch, ggml::ggml_tensor* out);
+    void  rms_norm(const float* x, const float* w, int n, float eps, float* out);
+    void  matmul(const float* x, const ggml::ggml_tensor* W, int n_in, int n_out, float* out, float* scratch);
     void  silu(float* x, int n);                 // in place
     void  rope_inplace(float* x, int n_rot, int pos, float base); // NEOX 对间旋转
     void  softmax_row(float* x, int n);          // in place 单行
 }
 ```
 
-算子都是「无状态并且输入输出是一段 `float*` 或一行 `ggml::ggml_tensor`」：**凡带权重的算子
-（`dequant_row`/`matmul`/`rms_norm`）现在把激活行 x/out 包成一行 `ggml::ggml_tensor`
-（`make_row`，见 `llama-forward.cpp`），并在函数内用 `check_shape` 校验尺寸**
-（如 `matmul` 断 `W->ne[0]==x->ne[0]`、`W->ne[1]==out->ne[0]`；`rms_norm` 断 `W->ne[0]==x->ne[0]==out->ne[0]`），
-不符返回 `false`。`rms_norm`/`matmul` 因此返回 `bool`；`silu`/`rope_inplace`/`softmax_row`
-是单行逐元素算子、无权重可比对，保持 `float*`。临时激活的 `data` 仍是 caller 的 flat `float*`
-缓冲（view 不拥有内存），这正是「直接循环、不建图」的体现。
-13 章起想深挖某个算子（向量化、低精度、分块），只需改这一个函数 + `test-kernel.cpp`
-里的单测——不动 `forward()` 的外围接线。这是把 kernel 单独拎出来、可独立编译测试的原因。
+算子都是「输入输出在一段 `float*` 上、无状态」，**凡带权重的输入一律走 `ggml::ggml_tensor*`
+（`dequant_row`/`matmul` 的权重；`rms_norm` 的 weight 是 F32 一维，直接 `float*`）**，
+临时激活值（`x`/`out`）仍为 `float*`。13 章起想深挖某个算子（向量化、低精度、分块），
+只需改这一个函数 + `test-kernel.cpp`
 
 ## 怎么跑（CMake，两个 CMakeLists）
 
