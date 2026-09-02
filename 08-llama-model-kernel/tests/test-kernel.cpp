@@ -95,7 +95,8 @@ int main()
         float out[3];
         kernel::rms_norm(x, w, 3, 1e-5f, out);
         CHECK(approx(out[0], 1.0f, 1e-3f) && approx(out[1], 1.0f, 1e-3f) &&
-              approx(out[2], 1.0f, 1e-3f), "rms_norm 常数向量(w=1) 归一化为 1");
+                  approx(out[2], 1.0f, 1e-3f),
+              "rms_norm 常数向量(w=1) 归一化为 1");
     }
 
     // --- matmul / dequant_row：本地 F32 权重 [n_in=2, n_out=3] ---
