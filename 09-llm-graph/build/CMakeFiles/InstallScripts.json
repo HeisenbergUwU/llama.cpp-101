@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/qilei/llama.cpp-101/09-llm-graph/build/cmake_install.cmake",
+		"/Users/qilei/llama.cpp-101/09-llm-graph/build/src/kernel/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

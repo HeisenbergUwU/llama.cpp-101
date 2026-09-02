@@ -88,7 +88,6 @@ namespace ggml
     };
 
     // ==== 03 推理（建图遍历）阶段的结构，02 先声明、暂不使用 ====
-
     // 推理时候图遍历方向
     enum ggml_cgraph_eval_order
     {
@@ -113,7 +112,7 @@ namespace ggml
         struct ggml_tensor **nodes; // 节点：data 会随求值变化
         struct ggml_tensor **leafs; // 叶子：常量/输入，data 不变
 
-        int32_t *use_counts; // 每个 tensor 的引用次数（判"输入是否齐"）
+        int32_t *use_counts;                   // 每个 tensor 的引用次数（判"输入是否齐"）
         struct ggml_hash_set visited_hash_set; // 判重（防环）
 
         enum ggml_cgraph_eval_order order;
