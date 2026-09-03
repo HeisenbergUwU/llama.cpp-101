@@ -1,7 +1,5 @@
 // ggml-ops.cpp - 算子构造函数实现（09 章）
-//
-// 每个算子从池子 new 一个算子节点 tensor（对齐上游 ggml_*_impl），填 op/src/
-// op_params/name，返回输出张量。不真正计算——执行在 ggml-kernel 的分发里。
+// 每个算子从池子 new 一个算子节点 tensor（对齐上游 ggml_*_impl），填 op/src/op_params/name 返回输出张量；不真正计算，执行在 ggml-kernel 的分发里。
 
 #include "ggml-ops.h"
 

@@ -1,12 +1,5 @@
-// ggml.h - 迷你 ggml：数据结构声明 + 加载层函数接口（03 章）
-//
-// 教程 03 章的接口层：在 02 章类型层（ggml_type / ggml_tensor / ggml_context
-// 等结构）之上，补充池子分配 API 的函数声明。实现放在 ggml.cpp。
-// 命名与字段对齐上游 llama.cpp/ggml/include/ggml.h 与 ggml/src/ggml.c。
-// 所有类型放进 `namespace ggml`，避免与 01 章的全局 `GGML_TYPE_*` 冲突。
-//
-// 面向的模型：tinybrainbot（F16 主模型）只用 F32 / F16。枚举编号照抄上游
-// （F32=0 / F16=1），和 GGUF 文件里的 int32 一致。
+// ggml.h - 迷你 ggml：03 章接口层，在 02 章类型层之上声明池子分配 API（实现见 ggml.cpp）。
+// 命名/字段对齐上游 ggml.h/ggml.c；类型放 `namespace ggml`；tinybrainbot 只用 F32/F16。
 
 #pragma once
 
@@ -19,6 +12,20 @@
 #define GGML_MEM_ALIGN 16     // 池子内存分配按 16 字节对齐（桌面 macOS/linux）
 #define GGML_MAX_SRC 8        // 一个算子节点的最多输入数
 #define GGML_MAX_OP_PARAMS 64 // op 专属参数缓冲字节数（= int32_t[16]）
+
+// GGML_ASSERT（对齐上游）：条件假时打印并 abort()，用于建图阶段入参校验（如 permute 越界轴）。
+// graph 单测用 fork+waitpid(WIFSIGNALED) 验证子进程撞上后 SIGABRT。
+#include <stdio.h>
+#include <stdlib.h>
+#define GGML_ASSERT(cond)                                            \
+    do                                                               \
+    {                                                                \
+        if (!(cond))                                                 \
+        {                                                            \
+            fprintf(stderr, "GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #cond); \
+            abort();                                                 \
+        }                                                            \
+    } while (0)
 
 namespace ggml
 {
@@ -46,9 +53,8 @@ namespace ggml
         ggml_from_float_t from_float_ref;
     };
 
-    // ---- 算子类型 ----
-    // NONE=叶子（权重/输入）；其余为算子节点。对齐上游 GGML_OP_*。
-    // 只保留通用算子（模型专属的 embed/attention 不进图设施）。
+    // ---- 算子类型 ---- NONE=叶子（权重/输入）；其余对齐上游 GGML_OP_* 为算子节点。
+    // 保留通用+前向必需算子（get_rows/soft_max/permute/cont 等），注意力由基础算子组合，不单列独有算子。
     enum ggml_op
     {
         GGML_OP_NONE = 0,
@@ -58,13 +64,18 @@ namespace ggml
         GGML_OP_SILU,
         GGML_OP_MUL,
         GGML_OP_ADD,
+        // 10 章补：embed 查表 / 注意力 softmax / 布局重排 / 强制连续
+        GGML_OP_GET_ROWS,
+        GGML_OP_SOFT_MAX,
+        GGML_OP_PERMUTE,
+        GGML_OP_CONT,
+        // 注意力逐头：strided 切列（head_extract）与行向拼接（concat）
+        GGML_OP_HEAD_EXTRACT,
+        GGML_OP_CONCAT,
     };
 
-    // ---- tensor ----
-    // 一个 n 维张量的「结构 + 数据指针」，是池子里的核心对象。
-    // 字段对齐上游 ggml_tensor（ggml.h 680 行）。
-    // 同时既是「权重/输入叶子」（op=NONE，data 指向权重/输入数据）也是「算子
-    // 节点」（op 非 NONE，src[] 记输入，data 是结果存放地）——和上游一致。
+    // ---- tensor ---- n 维张量「结构+数据指针」，池子核心对象，字段对齐上游 ggml_tensor。
+    // 既是「权重/输入叶子」（op=NONE，data 指向数据）也是「算子节点」（op 非 NONE，src[] 记输入）。
     struct ggml_tensor
     {
         enum ggml_type type; // 数据类型
@@ -93,9 +104,8 @@ namespace ggml
     void ggml_set_op_params_f32(struct ggml_tensor *a, int slot, float v);
     float ggml_get_op_params_f32(const struct ggml_tensor *a, int slot);
 
-    // ---- context ----
-    // 只有声明（forward declaration）：ggml_context 是内部实现，字段藏在 ggml.cpp，
-    // 外部只能拿到不透明句柄，通过函数接口操作。
+    // ---- context ---- 仅前向声明：ggml_context 是内部实现，字段藏在 ggml.cpp。
+    // 外部拿不透明句柄，通过函数接口操作。
     struct ggml_context;
 
     // ggml_init 的入参（对照上游 ggml.h 672 行）。
@@ -116,8 +126,7 @@ namespace ggml
     };
 
     // ==== 03 章·加载层函数接口 ====
-    // 在 02 章类型层之上，声明「往池子里实例化张量」的 API，实现都在 ggml.cpp，
-    // 对齐上游 ggml/src/ggml.c 的对应函数。
+    // 在 02 章类型层之上声明「实例化张量」的 API，实现在 ggml.cpp，对齐上游 ggml.c。
 
     // 建池：calloc 一块连续内存（params.mem_buffer==NULL 时内部自分配），
     // 初始化 objects_begin/end 空链表；返回不透明句柄，失败返回 NULL。
@@ -136,6 +145,10 @@ namespace ggml
     ggml_tensor *ggml_new_tensor_2d(ggml_context *ctx, enum ggml_type type, int64_t ne0, int64_t ne1);
     ggml_tensor *ggml_new_tensor_3d(ggml_context *ctx, enum ggml_type type, int64_t ne0, int64_t ne1, int64_t ne2);
     ggml_tensor *ggml_new_tensor_4d(ggml_context *ctx, enum ggml_type type, int64_t ne0, int64_t ne1, int64_t ne2, int64_t ne3);
+
+    // 建一个「view」张量：与 a 共享同一块 data（偏移 0、形状可不同），不拷贝数据。
+    // 布局 op（如 ggml_permute）重排 ne/nb 用——只改视角不改内存。data 仍指向 a->data。
+    ggml_tensor *ggml_view(ggml_context *ctx, ggml_tensor *a, int n_dims, const int64_t *ne);
 
     // 设张量名（拷进 tensor->name，超过 GGML_MAX_NAME-1 会截断）。返回 tensor。
     ggml_tensor *ggml_set_name(ggml_tensor *tensor, const char *name);

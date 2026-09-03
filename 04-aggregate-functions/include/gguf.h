@@ -1,15 +1,5 @@
-// gguf.h - GGUF 文件裸解析器（load + check）
-//
-// 教程 01 章的自包含实现：只解析 GGUF 文件的元数据（header、KV、tensor 信息）
-// 并做一致性校验，不依赖 ggml 的 tensor/context，也不 mmap 权重数据。
-// 本机是 64 位小端（macOS），GGUF 固定小端，直接 memcpy 读即可。
-// 04/05 章复用本文件：gguf_load 通过 llama_file 只解析，不再自己开文件。
-//
-// 与上游对应关系（详见目录内 reference.md）：
-//   布局   : ggml/include/gguf.h（头部注释结构定义）
-//   读取   : ggml/src/gguf.cpp（gguf_init_from_file）
-//   越界校验: src/llama-model-loader.h（llama_tensor_weight 的 bounds 检查）
-//   命名对齐: gguf_context / gguf_tensor_info / gguf_kv 对应上游同名 struct
+// gguf.h - GGUF 文件裸解析器（load + check）：只解析元数据并校验，不 mmap 权重。
+// 本机 64 位小端，GGUF 固定小端直接 memcpy；04/05 章经 llama_file 只解析、不再自己开文件。
 
 #pragma once
 
@@ -57,9 +47,8 @@ enum gguf_type
 namespace gguf
 {
 
-    // ---- 每种张量类型的形状参数（对应 ggml.h 的 ggml_type_traits 表） ----
-    // 上游每行有 blck_size 和 type_size 两字段（ggml.h 2890-2898）；
-    // 未量化类型 blck_size 恒为 1，故 type_size = 每元素字节数。保留两字段与上游对齐。
+    // ---- 每种张量类型的形状参数（对应 ggml.h 的 ggml_type_traits 表）----
+    // 保留 blck_size/type_size 两字段；未量化类型 blck_size=1，故 type_size=每元素字节数。
     struct type_trait
     {
         std::string name;
@@ -92,9 +81,8 @@ namespace gguf
         bool is_array() const { return type == gguf_type::GGUF_TYPE_ARRAY; }
     };
 
-    // 一个张量的「描述」（只有元数据，没有数据；对应上游 ggml/src/gguf.cpp 的
-    // struct gguf_tensor_info。上游还内嵌了一个 ggml_tensor 作为载体，这里因
-    // 教程不依赖 ggml，改用等价的 ggml-free 字段）
+    // 一个张量的「描述」（只有元数据；对应上游 gguf_tensor_info，但教程不依赖 ggml，
+    // 不内嵌 ggml_tensor 载体，改用等价的 ggml-free 字段）
     struct gguf_tensor_info
     {
         std::string name;
@@ -122,9 +110,7 @@ namespace gguf
     };
 
     // ---- 解析入口 ----
-    // 传入已由上层打开的 llama_file，只解析、不再自己开文件
-    // （04/05 章线性化：文件只打开一次，同一份 file 既喂给 gguf_load 又给 mmap）。
-    // 成功返回 true，并把结果填进 info；失败返回 false（out 里记录错误信息）。
+    // 传已打开的 llama_file 只解析不重开（文件只开一次，同一份既喂 gguf_load 又给 mmap）；成功填 info 返回 true。
     bool gguf_load(const llama::llama_file &file, gguf_context &info, std::string &err);
 
     // 把 KV 值转成可读字符串（标量/数组），供打印使用。

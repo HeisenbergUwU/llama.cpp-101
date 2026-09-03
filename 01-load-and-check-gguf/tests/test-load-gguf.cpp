@@ -1,12 +1,5 @@
 // test-load-gguf.cpp - 01 章演示/测试入口
-//
-// 用法：
-//   g++ -std=c++11 -Iinclude src/gguf.cpp tests/test-load-gguf.cpp -o test-load-gguf
-//   ./test-load-gguf ../resources/tinybrainbot-100m-v3-instruct/tinybrainbot-100m-v3-instruct-f16.gguf
-//
-// 功能：加载并校验一个 GGUF 文件，打印 header、全部 KV 与前几个 tensor，
-//       全部通过打印 "OK: N tensors, M kv pairs checked" 并返回 0，
-//       失败打印错误并返回非 0（与 llama.cpp 测试约定一致）。
+// 用法：g++ -std=c++11 -Iinclude src/gguf.cpp tests/test-load-gguf.cpp -o test-load-gguf；加载校验 GGUF，打印 header/KV/前几个 tensor，全过打印 "OK" 返回 0，失败打印错误返回非 0。
 
 #include "gguf.h"
 

@@ -1,18 +1,22 @@
-# CMakeLists.txt - 09 章「ggml 计算图设施」整体构建（根）
+# CMakeLists.txt - 10 章「整体模型图」整体构建（根）
 #
 # 分层（两个独立的 CMakeLists）：
 #   src/kernel/CMakeLists.txt —— kernel 纯算子子项目，可单独 cmake/build/test；
 #                                本文件用 add_subdirectory(src/kernel) 引入复用其 kernel 目标。
-#   本文件                       —— ggml_graph 计算图设施（ggml-graph.cpp）
-#                                 + 它的单测 test-ggml-graph（不依赖模型）。
+#   本文件                       —— ggml 图设施（ggml-graph/ops/kernel）+ 语义模型栈
+#                                 + 在本章把 llama 前向建成整图的 llama-graph（build_model_graph）
+#                                 + 两个测试：
+#                                  · test-ggml-graph（无需模型，验算子/图设施）
+#                                  · test-llama-graph-model（需模型，验整图 logits）
 #
 # 用法：
 #   整体：cmake -B build && cmake --build build
 #         ./build/test-ggml-graph
+#         ./build/test-llama-graph-model <model.gguf>
 #   kernel 单独：见 src/kernel/CMakeLists.txt（不依赖本文件 / 图）。
 
 cmake_minimum_required(VERSION 3.16)
-project(llama101-ch09-graph CXX)
+project(llama101-ch10-model-graph CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -54,7 +58,36 @@ target_link_libraries(ggml-graph PUBLIC ggml ggml-ops ggml-kernel)
 add_executable(test-ggml-graph tests/test-ggml-graph.cpp)
 target_link_libraries(test-ggml-graph PRIVATE ggml-graph)
 
+# ---------- llama-model 库：语义模型栈（gguf/io/hparams/model/vocab） ----------
+# 在本章自包含拷贝里，把「加载出有语义的模型」的各章源码编进一个库，
+# 供 build_model_graph（拿 model.token_embd / layers[il].wq 等权重）与模型测试用。
+add_library(llama-model STATIC
+    src/gguf.cpp
+    src/llama-io.cpp
+    src/llama-hparams.cpp
+    src/llama-model.cpp
+    src/llama-vocab.cpp)
+target_include_directories(llama-model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(llama-model PUBLIC ggml)
+
+# ---------- llama-graph 库：整体模型图构建器（build_model_graph） ----------
+# 用 10 章算子把 llama 前向（embed→12 层→lm_head）建成一张 ggml_cgraph。
+add_library(llama-graph STATIC src/llama-graph.cpp)
+target_include_directories(llama-graph PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(llama-graph PUBLIC llama-model ggml-ops ggml-graph)
+
+# ---------- test-llama-graph-model：整体模型图（需模型） ----------
+add_executable(test-llama-graph-model tests/test-llama-graph-model.cpp)
+target_link_libraries(test-llama-graph-model PRIVATE llama-graph)
+
 # ---------- 便捷运行目标 ----------
 add_custom_target(run-graph
     COMMAND ${CMAKE_CURRENT_BINARY_DIR}/test-ggml-graph
     DEPENDS test-ggml-graph)
+
+# tinybrainbot 默认模型路径（相对本目录，纯参考；README 里用相对路径引 resources）
+set(TINYBRAINBOT_MODEL
+    "${CMAKE_CURRENT_SOURCE_DIR}/../resources/tinybrainbot-100m-v3-instruct/tinybrainbot-100m-v3-instruct-f16.gguf")
+add_custom_target(run-model-graph
+    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/test-llama-graph-model ${TINYBRAINBOT_MODEL}
+    DEPENDS test-llama-graph-model)

@@ -1,8 +1,5 @@
-// test-llama-model.cpp - 04 章「建 llama_model + 加载权重」的手写测试（读者填充）
-//
-// 约定（见 AGENTS.md）：手写 main，退出码非 0 = 失败。
-// 目标：用 04 章的 load_model 把 tinybrainbot 加载成 llama_model，
-// 校验它 holds 110 个 tensor，且每个 tensor->data 都已挂到 mmap 区（非 NULL）。
+// test-llama-model.cpp - 05 章「建 llama_model + 加载权重」的手写测试（读者填充，见 AGENTS.md：
+// 退出码非 0=失败）。用 load_model 把 tinybrainbot 加载成 llama_model，校验 holds 110 个 tensor 且 data 已挂 mmap。
 
 #include "llama-model.h"
 
@@ -29,11 +26,8 @@ int main(int argc, char **argv)
     llama::llama_model llm;
     std::string err;
 
-    // TODO(读者)：等 load_model 实现后，这里应断言：
-    //   - load_model 返回 true
-    //   - llm.tensors.size() == 110（tinybrainbot）
-    //   - 每个 llm.tensors[i]->data != NULL（零拷贝已挂载）
-    //   - llm.tensors[0]->name 与 GGUF 里第一个 tensor 名一致
+    // TODO(读者)：load_model 实现后应断言——load_model 返回 true；llm.tensors.size()==110
+    // （tinybrainbot）；每个 data!=NULL（零拷贝已挂载）；tensors[0]->name 与 GGUF 首 tensor 名一致。
     if (!llama::load_model(argv[1], llm, err))
     {
         return fail(err.c_str());

@@ -1,9 +1,5 @@
 // test-gguf-io.cpp - 04 章「gguf 适配走 llama-io」手写测试
-//
-// 约定(见 AGENTS.md):手写 main,退出码非 0 = 失败。
-// 目标:验证把 01 章 gguf.cpp 拉进 04 章、并改造其文件操作改用 llama_file 后，
-//   解析结果与原来完全一致(不再裸调 fopen/fread,全部走 04 的 IO 封装层)。
-//   用 tinybrainbot 实测:magic / version / n_tensors / n_kv / data_offset 都对。
+// 验证 01 章 gguf.cpp 改用 llama_file 后解析结果一致（全部走 04 IO 封装层，不再裸调 fopen/fread）。
 
 #include "gguf.h"      // 01 章解析器(已改走 llama_file)
 #include "llama-io.h"  // 04 章 IO 封装层(gguf 现在依赖它)

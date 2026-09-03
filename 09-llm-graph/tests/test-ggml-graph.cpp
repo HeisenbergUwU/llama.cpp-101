@@ -1,12 +1,5 @@
 // test-ggml-graph.cpp - 09 章「ggml 计算图设施」单测
-//
-// 不依赖模型/forward，直接在 03 章池子（ggml_init + ggml_new_tensor）上建图：
-//   - 用 ggml_mul_mat / ggml_add 等从池子 new 算子节点 tensor（对齐上游）
-//   - ggml_build_forward_expand 的后序去重：共享节点(m)只在 nodes 登记一次
-//   - nodes 的顺序 = 拓扑序（src 先于消费者）
-//   - ggml_graph_compute 按拓扑执行，数值与手算一致
-//
-// 约定（AGENTS.md）：手写 main，退出码非 0 = 失败。
+// 不依赖模型/forward，直接在 03 章池子（ggml_init+ggml_new_tensor）上建图：用 ggml_mul_mat/ggml_add 从池子 new 算子节点；验证 build 后序去重（共享节点 m 只登记一次）、nodes 拓扑序（src 先于消费者）、compute 数值与手算一致。约定（AGENTS.md）：手写 main，退出码非 0=失败。
 
 #include "ggml-graph.h"
 #include "ggml.h"
@@ -69,16 +62,7 @@ int main()
     }
 
     // ---- toy：一个共享节点被用两次（演示去重）----
-    //   x=[1 2]
-    //   W1 = |1 0|   W2 = |0 1|   （行主序，ne={n_out=2, n_in=2}）
-    //        |0 1|        |1 0|
-    //   m = x·W1 = [1 2]        (matmul)
-    //   p = x·W2 = [2 1]
-    //   a = m + p = [3 3]        (add，用 m)
-    //   b = m·W2 = [2 1]        (matmul，又用 m -> m 被两个消费者引用)
-    //   y = a + b = [5 4]        (add)
-    //
-    // 期望：build(y) 后 leafs={x,W1,W2}，nodes 里 m 只登记一次。
+    // x=[1 2]，W1=单位阵、W2=交换阵（行主序，ne={n_out=2,n_in=2}）；m=x·W1=[1 2]，p=x·W2=[2 1]，a=m+p=[3 3]（用 m），b=m·W2=[2 1]（又用 m -> m 被两消费者引用），y=a+b=[5 4]。期望：build(y) 后 leafs={x,W1,W2}，nodes 里 m 只登记一次。
 
     ggml_tensor *x  = make_leaf(ctx, 2, 1, {1, 2}, "x");
     ggml_tensor *w1 = make_leaf(ctx, 2, 2, {1, 0, 0, 1}, "W1"); // 单位阵

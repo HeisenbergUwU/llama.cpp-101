@@ -1,14 +1,5 @@
 // llama-vocab.cpp - 07 章「词表 Vocab」实现
-//
-// build    : 从 tokenizer.ggml.tokens/scores/token_type/特殊 id 建表
-// detokenize: SPM（tokenizer.ggml.model="llama"）文本直接输出，byte token 还原 1 字节
-// tokenize : SPM 无 merges，做逐 token 最长前缀匹配（token_to_id 命中即取）
-//
-// tinybrainbot 实测（SPM 型，n_vocab=32000）：
-//   tokenizer.ggml.model = "llama"  -> LLAMA_VOCAB_TYPE_SPM
-//   token_type 分布: NORMAL=31731 / BYTE=256 / USER_DEFINED=9 / CONTROL=3 / UNKNOWN=1
-//   SPM 的空格用 U+2581（▁）表示，如 token 271 = "▁t"
-//   bos=<s>=0, eos=<|end|>=7（<|end|> 是 USER_DEFINED），unk=<unk>=3, pad=<pad>=2
+// build：从 tokenizer.ggml.tokens/scores/token_type/特殊 id 建表；detokenize：SPM 文本直接输出、byte token 还原 1 字节；tokenize：SPM 无 merges，做逐 token 最长前缀匹配。tinybrainbot 实测：model="llama"（SPM，n_vocab=32000），type 分布 NORMAL/BYTE/USER_DEFINED/CONTROL/UNKNOWN，空格用 ▁(U+2581)，bos=0/eos=7/unk=3/pad=2。
 
 #include "llama-vocab.h"
 
@@ -90,9 +81,7 @@ namespace llama
         }
         read_arr(ctx, "tokenizer.ggml.scores", score);
 
-        // token_type 对应上游 llama.h 的 llama_vocab_token_type：
-        //   0 UNDEFINED / 1 NORMAL / 2 UNKNOWN / 3 CONTROL
-        //   4 USER_DEFINED / 5 UNUSED / 6 BYTE
+        // token_type 对应上游 llama.h 的 llama_vocab_token_type：0 UNDEFINED / 1 NORMAL / 2 UNKNOWN / 3 CONTROL / 4 USER_DEFINED / 5 UNUSED / 6 BYTE
         read_arr(ctx, "tokenizer.ggml.token_type", type);
 
         n_vocab = (int32_t)tok.size();
@@ -250,9 +239,7 @@ namespace llama
                 spm_text += c;
             }
         }
-        // 无 merges：逐 token 最长前缀匹配（token_to_id 命中即取）。
-        // 匹配不到（词表外字符）：按 UTF-8 逐字节编码成 <0xXX> byte token（无损兜底，
-        // 对齐上游 resegment 的 byte_to_token）；连 byte token 都没有才回退 unk。
+        // 无 merges：逐 token 最长前缀匹配（token_to_id 命中即取）。匹配不到（词表外字符）：按 UTF-8 逐字节编码成 <0xXX> byte token（无损兜底，对齐上游 resegment 的 byte_to_token）；连 byte token 都没有才回退 unk。
         for (size_t i = 0; i < spm_text.size();)
         {
             int32_t matched_id = -1;
@@ -274,13 +261,8 @@ namespace llama
                 i += matched_len;
                 continue;
             }
-            // 无命中：取当前 UTF-8 字符（按首字节判断字节数），逐字节编码 byte token
-            // UTF-8 变长编码：一个字符占 1~4 字节，由首字节高位前缀决定
-            //   首字节二进制      掩码对比            字节数  典型范围
-            //   0xxxxxxx         (其余情况)          1      ASCII U+0000~007F
-            //   110xxxxx         c0&0xE0 == 0xC0     2      U+0080~07FF        (如 é)
-            //   1110xxxx         c0&0xF0 == 0xE0     3      U+0800~FFFF        (如 中)
-            //   11110xxx         c0&0xF8 == 0xF0     4      U+10000~10FFFF     (如 emoji)
+            // 无命中：取当前 UTF-8 字符（按首字节判断字节数），逐字节编码 byte token。
+            // UTF-8 变长（1~4 字节，按首字节高位前缀判定）：0xxxxxxx=1 字节 ASCII；110xxxxx=2 字节 U+0080~07FF（如 é）；1110xxxx=3 字节 U+0800~FFFF（如 中）；11110xxx=4 字节 U+10000~10FFFF（如 emoji）。
             size_t clen = 1;
             unsigned char c0 = (unsigned char)spm_text[i];
             if ((c0 & 0xE0) == 0xC0)
@@ -308,18 +290,7 @@ namespace llama
                 }
             }
             i += clen; // 推进整个 UTF-8 字符，避免死循环
-            // // 字节级别
-            // unsigned char c0 = (unsigned char)spm_text[i];
-            // int32_t bt = byte_to_token((uint8_t)spm_text[i]);
-            // if (bt >= 0)
-            // {
-            //     out.push_back(bt);
-            // }
-            // else if (id_unk >= 0)
-            // {
-            //     out.push_back(id_unk);
-            // }
-            // i++;
+            // （替代写法，已禁用）逐字节 byte_to_token 兜底：遇多字节 UTF-8 会切碎字符，故改用上面的「按字符推进」版。
         }
 
         if (add_special && add_eos)

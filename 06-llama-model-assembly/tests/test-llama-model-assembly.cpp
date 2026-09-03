@@ -1,9 +1,5 @@
-// test-llama-model-layer.cpp - 06 章「模型语义：Layer 组装」的手写测试
-//
-// 约定（见 AGENTS.md）：手写 main，退出码非 0 = 失败。
-// 流程：load_model（内部已 parse_hparams 填好 llm.hparams）
-//     -> assemble_model 把 110 个张量挂载成语义结构
-//     -> 断言 HParams 实测值 + 层数/指针完备性/形状。
+// test-llama-model-layer.cpp - 06 章「模型语义：Layer 组装」的手写测试。约定：手写 main，退出码非 0 = 失败。
+// 流程：load_model（内部 parse_hparams 填 llm.hparams）-> assemble_model 挂载 110 张量 -> 断言 HParams 实测值 + 层数/指针完备性/形状。
 
 #include "llama-hparams.h"
 #include "llama-model.h"

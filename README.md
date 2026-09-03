@@ -1,182 +1,103 @@
 # llama.cpp-101
 
-**简体中文 · [English](#english)**
+> 从零讲清 llama.cpp 的底层原理：按真实分层，一步步写出一个**小而精的推理引擎**。每章对照上游源码，把「为什么这么设计」讲明白。
 
-> 从零打造一个**小而精的 llama.cpp 推理引擎**：一步步拆解，最后得到一个**带服务 API 的可运行项目**。
+## 为什么有这个项目
 
----
+llama.cpp 源码体量过大——几十种量化、多后端（CPU/CUDA/Metal/Vulkan）、mmap/多分片/端序等大量"必要复杂度"，容易让人迷失。
 
-## 💡 为什么创建这个项目？ Why this project?
+本项目的做法：**按 llama.cpp 的真实分层，自己动手写最小实现**，每层对照上游源码讲清原理，最后汇聚成一个可运行的推理项目。重在「讲得清原理」，而非交付一个产品。
 
-开始读 llama.cpp 源码时，我发现它**代码量过大**——几十种量化、多后端（CPU/CUDA/Metal/Vulkan）、各种加速路径，生产级 C++ 里塞满了 mmap、多分片、端序处理等大量"必要的复杂度"。
+## 章节进度
 
-很容易**迷失在代码细节的迷宫里**：不知道从哪读起，也不知道哪些是骨架、哪些是皮毛。
+最新分章粒度以 [`ROADMAP.md`](ROADMAP.md) 为准。当前各章目录：
 
-所以我创建这个项目，换一条路：
+| 章 | 目录 | 主题 | 状态 |
+|----|------|------|:----:|
+| 00 | `00-what-is-llama-cpp/` | llama.cpp 是什么 | ✅ |
+| 01 | `01-load-and-check-gguf/` | 加载并校验 GGUF（裸解析器） | ✅ |
+| 02 | `02-ggml-context/` | 迷你 ggml 数据结构层 | ✅ |
+| 03 | `03-ggml-build-context/` | 迷你 ggml 加载层（池子分配函数） | ✅ |
+| 04 | `04-aggregate-functions/` | 文件 IO 封装层（llama_file + llama_mmap） | ✅ |
+| 05 | `05-llama-model-load/` | 建 llama_model 聚合对象 + 加载权重 | ✅ |
+| 06 | `06-llama-model-assembly/` | 模型语义（HParams + Layer/Model 组装） | ✅ |
+| 07 | `07-llama-model-vocab/` | 词表 Vocab（tokenize / detokenize） | ✅ |
+| 08 | `08-llama-model-kernel/` | 算子内核（kernel 层） | 🟡 进行中 |
+| 09 | `09-llm-graph/` | ggml 计算图设施 | 🟡 进行中 |
+| 10 | `10-llama-model-graph/` | 整体模型图（llama 前向建图） | 🟡 进行中 |
+| 11 | `11-llama-model-run-it!/` | 自回归采样 + 跑起来 | 🟡 进行中 |
 
-> **按 llama.cpp 的真实分层，自己动手，一步一步搭一个小而精的推理引擎。** 每一层都对照着读上游源码，把"为什么这么设计"讲清楚；最后汇聚成一个**具有服务 API 功能**的完整项目——既能跑，又看得懂。
+> `08+` 的 server-first 快路径见 `ROADMAP.md`（算子内核 → 计算图 → 整体模型图 → 采样跑起来 → 最小 CPU server；KV cache / batch 延后为优化章节，逐算子深挖在 15+）。
 
----
+## 快速开始
 
-## 🎯 目标 Goals
+01–07 用 Makefile（`make run`），08–11 用 CMake。测试模型用 `resources/` 下的 tinybrainbot（约 200MB，F16，git 忽略）。
 
-| | |
-|---|---|
-| **小而精** | 刻意保持精简，只保留能讲清原理的最小实现，不堆功能 |
-| **一步步** | 严格分阶段渐进，每阶段只做当前阶段的事，不越界 |
-| **有产出** | 最终交付一个带服务 API 的推理项目，而不只是一堆讲解 |
+### ① 下载模型（HuggingFace）
 
----
+测试模型：**https://huggingface.co/nkthebass/tinybrainbot-100m-v3-instruct**
 
-## 🗺️ 路线图 Roadmap
+```bash
+# 用 huggingface-cli 下载 GGUF 权重到 resources/ 下
+huggingface-cli download nkthebass/tinybrainbot-100m-v3-instruct \
+  tinybrainbot-100m-v3-instruct-f16.gguf \
+  --local-dir resources/tinybrainbot-100m-v3-instruct
+```
 
-按 llama.cpp 的真实分层，从 "读文件" 到 "跑推理、再到对外提供 API" 逐章拆解。**最新分章粒度以 `ROADMAP.md` 为准**，本表给出当前进度：
+### ② 跑起来（需要模型）
 
-| 章 | 主题 | 对应上游 | 状态 |
-|----|------|----------|:----:|
-| 00 | 什么是 llama.cpp | — | ✅ |
-| 01 | 加载并校验 GGUF（裸解析器） | `gguf.cpp::gguf_init_from_file` | ✅ |
-| 02 | 迷你 ggml 数据结构层（类型与布局） | `ggml/src/ggml.h/.c` | ✅ |
-| 03 | 迷你 ggml 加载层（池子分配函数） | `ggml/src/ggml.c` | ✅ |
-| 04 | 文件 IO 封装层（`llama_file` + `llama_mmap`） | `llama.cpp/src/llama-mmap.*` | ✅ |
-| 05 | `llama_model` 聚合对象 + 加载权重（mmap 零拷贝） | `llama-model-loader.*` + `llama-model.*` | ✅ |
-| 06 | 模型语义：HParams + Layer/Model 组装 | `llama-hparams.*` + `llama-model.h` | ✅ |
-| 07 | 词表 Vocab：tokenize / detokenize | `llama-vocab.h/.cpp` | ✅ |
-| 08 | 完整前向（全量重算）→ logits + argmax | `src/models/llama.cpp`（`graph<false>`） | ✅ |
-| 09 | 自回归采样（greedy，处理 EOG/max_tokens） | `llama-sampling.*` | ⬜ 规划 |
-| 10 | 最小 CPU server（`POST /v1/chat/completions`） | `tools/server` / `common/` | ⬜ 规划 |
+```bash
+# 01：裸 GGUF 解析器，解析并校验 tinybrainbot
+cd 01-load-and-check-gguf && make run
 
-> `08+` 的排期见 `ROADMAP.md`（server-first 快路径：先 08→09→10 拿 CPU server 出文本，KV cache/batch 延后为 11/12 优化章节，逐算子深挖在 13+）。
+# 05：完整加载 llama_model（110 个 tensor，mmap 零拷贝）
+cd 05-llama-model-load && make run
 
----
+# 07：词表 Vocab，中文/英文 tokenize<->detokenize 往返
+cd 07-llama-model-vocab && make run
 
-## 📚 仓库结构 Layout
+# 11：完整前向 → 自回归采样，生成一整段文本
+cd 11-llama-model-run-it! && cmake -B build -S . && cmake --build build && ./build/llama-cli <path/to/model.gguf> -n 64
+```
+
+### ③ Kernel / 图（不依赖模型）
+
+```bash
+# 08：算子内核测试（不依赖模型）
+cd 08-llama-model-kernel && cmake -B build-kernel -S src/kernel && cmake --build build-kernel && ./build-kernel/test-kernel
+
+# 09：ggml 计算图设施测试（不依赖模型）
+cd 09-llm-graph && cmake -B build -S . && cmake --build build && ./build/test-ggml-graph
+```
+
+## 仓库结构
 
 ```
 llama.cpp-101/
 ├── llama.cpp/                     # 上游 llama.cpp 完整 clone（被研究对象，git 忽略）
 ├── resources/                     # 测试用模型权重（tinybrainbot 等，git 忽略）
-├── 00-what-is-llama-cpp/          # 00 章：llama.cpp 是什么
-├── 01-load-and-check-gguf/        # 01 章：加载并校验 GGUF（裸 GGUF 解析器）
-├── 02-ggml-context/               # 02 章：迷你 ggml 数据结构层
-├── 03-ggml-build-context/         # 03 章：迷你 ggml 加载层（池子分配函数）
-├── 04-aggregate-functions/        # 04 章：文件 IO 封装层（llama_file + llama_mmap）
-├── 05-llama-model-load/           # 05 章：建 llama_model 聚合对象 + 加载权重
-├── 06-llama-model-assembly/       # 06 章：模型语义（HParams + Layer/Model 组装）
-├── 07-llama-model-vocab/          # 07 章：词表 Vocab（tokenize / detokenize）
-├── 08-llama-model/                # 08 章：完整前向（embed→GQA 注意力→SwiGLU→lm_head→logits）
-├── ROADMAP.md                     # 权威分章路线图（改动分章前先读它）
-└── AGENTS.md                      # 协作者 / 贡献者须知
+├── 00-what-is-llama-cpp/          # 00 章
+├── 01-load-and-check-gguf/        # 01 章
+├── ...                            # 02–11 章（见上方进度表）
+├── README.md                      # 本文件
+├── LICENSE                        # MIT 协议
+├── ROADMAP.md                     # 权威分章路线图（改分章前先读它）
+├── AGENTS.md                      # 协作者 / 贡献者须知
+└── playground/                    # 随手实验代码（git 忽略）
 ```
 
-> `llama.cpp/`、`resources/`、`.omo/`、`playground/` 均被 git 忽略；每个可构建章节自带源码、测试与 Makefile（04+ 自包含，含前几章代码的本地拷贝）。
+> `llama.cpp/`、`resources/`、`.omo/`、`playground/` 均被 git 忽略；每个可构建章节自带源码、测试与构建配置（04+ 自包含，含前几章代码的本地拷贝）。
 
-**快速开始：**
+## 方法
 
-```bash
-# 01 章：裸 GGUF 解析器，解析并校验 tinybrainbot
-cd 01-load-and-check-gguf && make run
-
-# 05 章：完整加载 llama_model（110 个 tensor，mmap 零拷贝），8GB 内存也能跑
-cd 05-llama-model-load && make run
-
-# 07 章：词表 Vocab，中文/英文 tokenize<->detokenize 往返
-cd 07-llama-model-vocab && make run
-
-# 08 章：完整前向，tokenize 提示 -> logits -> argmax 出下一个 token
-cd 08-llama-model && make run
-```
-
----
-
-## 🛠️ 方法 Methods
-
-1. **从零实现，不抄上游**：每一章自己写最小实现，刻意保持精简、只关注该章那一个原理。
-2. **对照真实源码**：每个实现都标注对应 `llama.cpp/` 内的实际源码位置（相对路径），以真实代码为准，不凭记忆。
+1. **从零实现，不抄上游**：每章写最小实现，只讲清该章那一个原理。
+2. **对照真实源码**：每个实现标注对应 `llama.cpp/` 的实际源码位置（相对路径），以真实代码为准。
 3. **轻量可跑**：用 tinybrainbot（约 200MB，F16）当测试模型；测试不引入第三方框架。
-4. **最终有产出**：不是停留在讲解，而是汇聚成一个带服务 API 的推理项目。
+4. **最终有产出**：汇聚成一个带服务 API 的推理项目。
 
-> 比起"会跑"，我们更在意"讲得清楚原理"——这是整个项目取舍的准则。
+## License
 
----
+本项目以 **MIT 协议**开源，详见 [`LICENSE`](LICENSE)。
 
-<a name="english"></a>
+> 本项目为教学用途，代码为从零实现、对照上游理解；参考的 `llama.cpp` 亦以 **MIT** 协议开源（见其仓库 LICENSE）。各章节标注的上游源码位置仅供学习对照，不在本项目内复制其代码。
 
-## 🌐 English
-
-**llama.cpp-101** — build a **small but precise llama.cpp inference engine** step by step, ending with a **runnable project that exposes a service API**.
-
-### Why this project?
-
-When I started reading the llama.cpp source, I found it **too large** — dozens of quantizations, multiple backends (CPU/CUDA/Metal/Vulkan), and production-grade C++ packed with mmap, multi-shard, endianness handling, and lots of "necessary complexity."
-
-It's all too easy to **get lost in the maze of code details**: not knowing where to start, or which parts are the skeleton and which are the fluff.
-
-So I created this project and went a different way:
-
-> **Follow llama.cpp's real layering and build, by hand, a small, precise inference engine step by step.** At each layer, cross-check against the upstream source to explain *why* it's designed that way — converging into a **full project with a service API** that both runs and is understandable.
-
-### Goals
-
-| | |
-|---|---|
-| **Small & precise** | Deliberately minimal — keep only what explains the principle, no feature-stuffing |
-| **Step by step** | Strictly staged; each phase does only its own work |
-| **A deliverable** | Ends in a service-API inference project, not just prose |
-
-### Roadmap
-
-Following llama.cpp's real layering, chapter by chapter from "reading the file" to "inference, then a service API". **Authoritative granularity lives in `ROADMAP.md`**; this table shows current progress:
-
-| Ch | Topic | Upstream reference | Status |
-|----|-------|--------------------|:------:|
-| 00 | What is llama.cpp | — | ✅ |
-| 01 | Load & validate GGUF (bare parser) | `gguf.cpp::gguf_init_from_file` | ✅ |
-| 02 | Mini ggml data-structure layer | `ggml/src/ggml.h/.c` | ✅ |
-| 03 | Mini ggml load layer (pool allocators) | `ggml/src/ggml.c` | ✅ |
-| 04 | File I/O wrapper (`llama_file` + `llama_mmap`) | `llama.cpp/src/llama-mmap.*` | ✅ |
-| 05 | `llama_model` aggregate + load weights (mmap zero-copy) | `llama-model-loader.*` + `llama-model.*` | ✅ |
-| 06 | Model semantics: HParams + Layer/Model assembly | `llama-hparams.*` + `llama-model.h` | ✅ |
-| 07 | Vocab: tokenize / detokenize | `llama-vocab.h/.cpp` | ✅ |
-| 08 | Full forward (full recompute) → logits + argmax | `src/models/llama.cpp` (`graph<false>`) | ✅ |
-| 09 | Autoregressive sampling (greedy, EOG/max_tokens) | `llama-sampling.*` | ⬜ planned |
-| 10 | Minimal CPU server (`POST /v1/chat/completions`) | `tools/server` / `common/` | ⬜ planned |
-
-> Chapters after `08+` follow `ROADMAP.md` (server-first fast path: 08→09→10 to get CPU server text output; KV cache/batch deferred to 11/12 optimization chapters; per-op deep-dive in 13+).
-
-### Layout
-
-```
-llama.cpp-101/
-├── llama.cpp/                     # upstream clone (studied, git-ignored)
-├── resources/                     # test weights (git-ignored)
-├── 00-what-is-llama-cpp/          # Ch.00: what is llama.cpp
-├── 01-load-and-check-gguf/        # Ch.01: load & validate GGUF (bare parser)
-├── 02-ggml-context/               # Ch.02: mini ggml data-structure layer
-├── 03-ggml-build-context/         # Ch.03: mini ggml load layer (pool allocators)
-├── 04-aggregate-functions/        # Ch.04: file I/O wrapper (llama_file + llama_mmap)
-├── 05-llama-model-load/           # Ch.05: llama_model aggregate + load weights
-├── 06-llama-model-assembly/       # Ch.06: model semantics (HParams + Layer/Model assembly)
-├── 07-llama-model-vocab/          # Ch.07: vocab (tokenize / detokenize)
-├── 08-llama-model/                # Ch.08: full forward (embed→GQA attn→SwiGLU→lm_head→logits)
-├── ROADMAP.md                     # authoritative chapter roadmap
-└── AGENTS.md                      # contributor notes
-```
-
-> `llama.cpp/`, `resources/`, `.omo/`, `playground/` are git-ignored; each buildable chapter ships its own source, test, and Makefile (04+ are self-contained with local copies of prior chapters).
-
-**Get started:**
-
-```bash
-# Ch.01: bare GGUF parser, parse & validate tinybrainbot
-cd 01-load-and-check-gguf && make run
-
-# Ch.05: full llama_model load (110 tensors, mmap zero-copy), runs on 8GB RAM
-cd 05-llama-model-load && make run
-
-# Ch.07: vocab, Chinese/English tokenize<->detokenize round-trip
-cd 07-llama-model-vocab && make run
-
-# Ch.08: full forward, tokenize prompt -> logits -> argmax next token
-cd 08-llama-model && make run
-```

@@ -1,17 +1,5 @@
-// test-ggml-build-context.cpp - 03 章「迷你 ggml 加载层」的手写测试
-//
-// 约定（见 AGENTS.md）：不引入第三方测试框架；手写 main，退出码非 0 = 失败。
-// 临时文件放 /tmp（本章无需文件）。
-//
-// 覆盖面（对应 src/ggml.cpp 的加载层 API）：
-//   1. ggml_init / ggml_free：建池（自分配）+ 释放
-//   2. ggml_new_tensor / _1d/_2d/_3d/_4d：各维度实例化
-//   3. 池子切块：连续建 tensor，检查对象头 + 数据区互不重叠、对齐
-//   4. nb[] 行主序步长换算
-//   5. ggml_set_name：设名 & 截断
-//   6. ggml_nbytes：字节数公式
-//   7. no_alloc / view：数据区分配逻辑（三种 data 分支）
-//   8. 池子不够：ggml_init / ggml_new_tensor 失败路径
+// test-ggml-build-context.cpp - 03 章「迷你 ggml 加载层」手写测试
+// 不引入第三方框架；手写 main，退出码非 0=失败。覆盖面：建池/释放、各维度 ggml_new_tensor_*、池子切块不重叠对齐、nb[] 步长、ggml_set_name 截断、ggml_nbytes 公式、no_alloc/view 三种 data 分支、池子不足的失败路径。
 
 #include "ggml.h"
 
@@ -94,8 +82,7 @@ int main()
     }
 
     // ---- case 4：nb[] 行主序步长换算 ----
-    //   F32: nb[0]=4, nb[1]=4×ne0, nb[2]=nb[1]×ne1, nb[3]=nb[2]×ne2
-    //   F16: nb[0]=2（type_size=sizeof(uint16_t)=2）
+    //   F32: nb[0]=4, nb[1]=4×ne0, nb[2]=nb[1]×ne1, nb[3]=nb[2]×ne2；F16: nb[0]=2（type_size=sizeof(uint16_t)=2）
     RUN_CASE("nb[] 行主序步长换算");
 
     {
@@ -257,8 +244,7 @@ int main()
     }
 
     // ---- case 10：view 分支语义（共享同一块池子内存）----
-    // 公开 API 不暴露 view，这里验证 no_alloc=false 时池子里的 data 空间
-    // 可读写（04 章 mmap 会在这个分支上做零拷贝挂载）。
+    // 公开 API 不暴露 view，这里验证 no_alloc=false 时池子里的 data 空间可读写（04 章 mmap 在此分支零拷贝挂载）。
     RUN_CASE("池子里 data 空间可读写（为 mmap 零拷贝铺路）");
 
     {

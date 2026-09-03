@@ -1,8 +1,5 @@
 // ggml-kernel.cpp - 分发/组合层实现（09 章）
-//
-// 把 ggml_graph_compute 里「按 op 调具体算子」的 switch 搬到这里：只依赖
-// ggml::ggml_tensor 的元数据（op/src/ne/op_params/data），拆出数组喂给底层的
-// kernel:: 裸 float* 算子。这样计算图设施完全不认识算子实现。
+// 把 ggml_graph_compute 里「按 op 调具体算子」的 switch 搬到这里：只依赖 ggml::ggml_tensor 元数据（op/src/ne/op_params/data），拆出数组喂给底层 kernel:: 裸 float* 算子，让计算图设施完全不认识算子实现。
 
 #include "ggml-kernel.h"
 

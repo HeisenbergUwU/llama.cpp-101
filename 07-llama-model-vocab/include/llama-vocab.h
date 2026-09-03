@@ -1,12 +1,5 @@
-// llama-vocab.h - 07 章「词表 Vocab」接口（最小可跑）
-//
-// 从 GGUF 的 tokenizer.ggml.* KV 建词表，提供 id<->文本 编解码。
-// 教学取舍（对照上游 llama.cpp/src/llama-vocab.h/.cpp）：
-//   - 上游 llama_vocab 用 pimpl（struct impl + unique_ptr）藏实现、从
-//     llama_model_loader + LLM_KV 读 KV、按 model 派发 SPM/BPE/WPM/... 几十种。
-//   - 本迷你版：扁平 struct、直接读 gguf_context.kv、只支持 tinybrainbot
-//     （tokenizer.ggml.model="llama" 即 SPM 型，无 merges）。
-// 故不引入上游的 llama_vocab_pre_type 全表、normalizer_options 等 -- 最小集够用。
+// llama-vocab.h - 07 章「词表 Vocab」接口（最小可跑）；从 tokenizer.ggml.* KV 建词表，提供 id<->文本 编解码。
+// 教学取舍（对照上游 llama-vocab.h/.cpp）：上游 pimpl + llama_model_loader + LLM_KV + 几十种分词器；本迷你版扁平 struct 直接读 gguf_context.kv，只支持 tinybrainbot（tokenizer.ggml.model="llama" 即 SPM 型，无 merges）。
 
 #pragma once
 
@@ -58,8 +51,7 @@ namespace llama
         bool add_eos = false; // tokenize 时是否末尾追加 eos（实测 false）
 
         // ---- 接口 ----
-        // 从 GGUF KV 建词表（tokenizer.ggml.tokens/scores/token_type/特殊 id）。
-        // 成功 true 填好本对象；失败 false（err 写原因）。
+        // 从 GGUF KV 建词表（tokenizer.ggml.tokens/scores/token_type/特殊 id）。成功 true 填好；失败 false（err 写原因）。
         bool build(const gguf::gguf_context &ctx, std::string &err);
 
         // <0xXX> 型 byte token 解析成 1 个字节；非 byte token 返回 0

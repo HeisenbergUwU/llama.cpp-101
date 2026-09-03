@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/qilei/llama.cpp-101/08-llama-model-kernel/build-kernel/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

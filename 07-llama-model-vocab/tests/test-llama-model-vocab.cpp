@@ -1,8 +1,5 @@
-// test-llama-model-vocab.cpp - 07 章「词表 Vocab」的手写测试
-//
-// 约定（见 AGENTS.md）：手写 main，退出码非 0 = 失败。
-// 只测词表：load_model 内部已 build 好 llm.vocab，
-// 断言 n_vocab / 特殊 id / is_eog / tokenize<->detokenize 往返。
+// test-llama-model-vocab.cpp - 07 章「词表 Vocab」手写测试
+// 约定（见 AGENTS.md）：手写 main，退出码非 0=失败。只测词表：load_model 已 build 好 llm.vocab，断言 n_vocab/特殊 id/is_eog/tokenize<->detokenize 往返。
 
 #include "llama-model.h"
 

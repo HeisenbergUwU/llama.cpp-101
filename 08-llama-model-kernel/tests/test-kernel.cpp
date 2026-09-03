@@ -1,11 +1,5 @@
-// test-kernel.cpp - 08 章「算子内核」单独测试
-//
-// 只测 kernel 层的纯算子（fp16_to_fp32 / dequant_row / rms_norm / matmul /
-// silu / rope_inplace / softmax_row），**不依赖模型 / forward / KVSlice**：
-// 可以单独编译、单独跑（CMake 的 test-kernel 目标）。
-//
-// 约定（AGENTS.md）：手写 main，退出码非 0 = 失败。
-// 注：memset 一个本地 F32 ggml_tensor 来喂 matmul/dequant_row，不依赖池子。
+// test-kernel.cpp - 08 章「算子内核」单独测试。只测 kernel 纯算子（fp16/dequant_row/rms_norm/matmul/silu/rope/softmax_row），不依赖模型/forward/KVSlice。
+// 约定：手写 main 退出码非 0=失败；用 memset 本地 F32 ggml_tensor 喂 matmul/dequant_row，不依赖池子。
 
 #include "kernel/kernel.h"
 

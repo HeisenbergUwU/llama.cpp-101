@@ -1,8 +1,5 @@
-// llama-hparams.cpp - 06 章「超参数 HParams」实现
-//
-// parse_hparams：遍历 gguf_context.kv，按 key 把值填进 HParams。
-// 键名 = "<arch>.<subkey>"（arch 对 plain llama 是 "llama"，见 llama-arch.cpp）。
-// 只处理 tinybrainbot 需要的字段；缺关键字段即报错（读者可在此扩展）。
+// llama-hparams.cpp - 06 章「超参数 HParams」实现。parse_hparams 遍历 gguf_context.kv，
+// 按 key（"<arch>.<subkey>"，arch=llama）填 HParams；只处理 tinybrainbot 必需的字段，缺则报错。
 
 #include "llama-hparams.h"
 
@@ -29,9 +26,8 @@ namespace llama
             return nullptr;
         }
 
-        // 读一个非数组、标量数值型 KV：uint32 或 float。
-        // 05 的 gguf.cpp 把标量统一存成十进制字符串（std::to_string），
-        // 故用 strtoul/strtof 就能还原。
+        // 读一个非数组、标量数值型 KV：uint32 或 float。05 的 gguf.cpp 把标量存成
+        // 十进制字符串（std::to_string），故用 strtoul/strtof 还原。
         bool read_u32(const gguf::gguf_context &ctx, const std::string &key, uint32_t &out)
         {
             const gguf::gguf_kv *kv = find_key(ctx, key);

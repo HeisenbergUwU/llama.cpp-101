@@ -57,10 +57,7 @@ namespace ggml
     }
 
     // ---- 建池 ----
-    // 对齐上游 ggml_init（llama.cpp/ggml/src/ggml.c）：
-    //   - ggml_context 这个「句柄结构」单独 malloc 一块，**不占池子**；
-    //     它只是指向池子的管理器。mem_buffer 池子只放对象/tensor。
-    //   - 若 params.mem_buffer 为 NULL，内部 calloc 一块作为池子。
+    // 对齐上游 ggml_init(ggml.c)：ggml_context 句柄单独 malloc **不占池子**（只作指向池子的管理器，mem_buffer 池子只放对象/tensor）；params.mem_buffer 为 NULL 时内部 calloc 自分配。
     ggml_context *ggml_init(struct ggml_init_params params)
     {
         // 句柄单独分配（这是「不透明句柄」的背面：调用方只见指针，
@@ -119,9 +116,7 @@ namespace ggml
     }
 
     // ---- 池子切块：在末尾追加一块，返回对象头 ----
-    // 布局（对齐上游 ggml_new_object）：
-    //   [ ggml_object 头 ][ 载荷 size ]，obj->offs 指向载荷起点，
-    //   obj->size 是「对齐后的载荷大小」。下一个对象接在载荷之后。
+    // 布局（对齐上游 ggml_new_object）：[ ggml_object 头 ][ 载荷 size ]，obj->offs 指载荷起点、size 为对齐后载荷大小，下一对象接其后。
     static ggml_object *ggml_new_object(ggml_context *ctx, enum ggml_object_type type, size_t size)
     {
         // 载荷向上取整到 16

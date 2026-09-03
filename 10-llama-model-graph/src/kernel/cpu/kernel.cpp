@@ -1,13 +1,5 @@
-// kernel/cpu/kernel.cpp - 08 章「算子内核」CPU 实现
-//
-// 纯计算算子（Scheme A：直接循环，不建图），与 forward/KVSlice/模型胶水解耦，
-// 可单独编译 + 单独测试（tests/test-kernel.cpp）。
-//
-// 权重留 mmap 的 data 上，用「option (c)」按行反量化：matmul 一次只 dequant
-// 权重的一行进一个复用 scratch 缓冲，在 F32 里累加 —— 避免为 200MB 权重另造
-// F32 副本。整章唯一懂 F16 字节布局的是 dequant_row。
-//
-// 13 章+ 想深挖某个算子（向量化 / 低精度 / 分块），只改这里 + 它的单测。
+// kernel/cpu/kernel.cpp - 08 章「算子内核」CPU 实现：纯计算算子（方案 A：直接循环、不建图），可单独编译/测试。
+// 权重留 mmap data，matmul 一次只反量化一行到复用 scratch 在 F32 累加（避免造 200MB F32 副本）；唯一懂 F16 布局的是 dequant_row。
 
 #include "kernel/kernel.h"
 
@@ -17,11 +9,8 @@
 namespace kernel
 {
 
-    // ---- IEEE 754 半精度 -> 单精度 ----
-    // h 位布局：s(1) e(5) m(10)。常规（非 0/非无穷/非 NaN）：
-    //   (-1)^s × 2^(e-15) × 1.m
-    // 注意：这里不能标 inline（头文件里也是普通声明）。若头文件声明 inline 而
-    // 定义标 inline，函数不会导出外部符号，test-kernel.cpp 单独链接会 undefined symbol。
+    // ---- IEEE 754 半精度->单精度：h 位布局 s(1)e(5)m(10)，常规值 (-1)^s × 2^(e-15) × 1.m。
+    // 不能标 inline（普通声明）：inline 不导出外部符号，test-kernel.cpp 单独链接会 undefined symbol。
     float fp16_to_fp32(uint16_t h)
     {
         const uint16_t s = (h >> 15) & 0x1;
@@ -51,9 +40,7 @@ namespace kernel
         return out;
     }
 
-    // ---- 反量化权重的一行 ----
-    // W->data 指向 mmap 的原始字节；第 row 行的起点 = row × ne[0] × 每元素字节数。
-    // F16 -> 逐元素 fp16_to_fp32；F32 -> 直接 memcpy（都是 4 字节/元素，且小端一致）。
+    // ---- 反量化权重的一行 ---- 起点=row×ne[0]×每元素字节数；F16→逐元素 fp16_to_fp32，F32→memcpy（小端一致）。
     void dequant_row(const ggml::ggml_tensor *W, int row, float *dst)
     {
         const int64_t n_in = W->ne[0]; // 每行元素数
@@ -72,8 +59,7 @@ namespace kernel
         }
     }
 
-    // ---- RMS 归一化（逐行） ----
-    // rms = sqrt( mean(x^2) + eps )；out[j] = x[j] / rms * w[j]。
+    // ---- RMS 归一化（逐行）：rms=sqrt(mean(x^2)+eps)，out[j]=x[j]/rms*w[j]。 ----
     // w 是一维 [n] F32 weight（attn_norm/ffn_norm/output_norm，直接读 data）。
     void rms_norm(const float *x, const float *w, int n, float eps, float *out)
     {
@@ -90,9 +76,8 @@ namespace kernel
         }
     }
 
-    // ---- 矩阵乘（权重在前） ----
-    // W 是 [n_in, n_out]（ne[0]=n_in 列=输入，ne[1]=n_out 行=输出，行主序）。
-    // out[j] = Σ_i x[i] * Wrow[j][i]。Wrow[j] 反量化到 scratch（长度 n_in）。
+    // ---- 矩阵乘（权重在前）：W[n_in,n_out]（行主序），out[j]=Σ_i x[i]*Wrow[j][i] ----
+    // Wrow[j] 反量化到 scratch（长度 n_in）。
     void matmul(const float *x, const ggml::ggml_tensor *W, int n_in, int n_out, float *out, float *scratch)
     {
         for (int j = 0; j < n_out; ++j)
@@ -155,6 +140,17 @@ namespace kernel
         {
             x[i] *= inv;
         }
+    }
+
+    // ---- 带掩码+缩放的 softmax（in place）----
+    // 先就地套 scale 与掩码（mask[i] 加到负无穷即被 softmax 归一掉），再复用 softmax_row。
+    void soft_max_ext(float *x, const float *mask, float scale, int n)
+    {
+        for (int i = 0; i < n; ++i)
+        {
+            x[i] = scale * x[i] + (mask ? mask[i] : 0.0f);
+        }
+        softmax_row(x, n);
     }
 
 } // namespace kernel

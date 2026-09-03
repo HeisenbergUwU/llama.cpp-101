@@ -1,10 +1,5 @@
 // test-llama-io.cpp - 04 章「文件 IO 封装层」手写测试
-//
-// 约定(见 AGENTS.md):手写 main,退出码非 0 = 失败。
-// 目标:验证 llama_file / llama_mmap 封装有效——
-//   1. llama_file 能打开 GGUF 文件并拿到真实大小
-//   2. llama_mmap 能把整个文件映射进地址空间
-//   3. 从 mmap 基址读 4 字节,等于 GGUF magic "GGUF"(证明零拷贝真的指向文件内容)
+// 验证 ①llama_file 打开并拿大小 ②llama_mmap 映射全文件 ③从 mmap 基址读出 GGUF magic（证明零拷贝指向文件内容）。
 
 #include "llama-io.h"
 
@@ -54,8 +49,7 @@ int main(int argc, char **argv)
     std::printf("llama_mmap : addr=%p size=%zu\n", mapping.addr, mapping.size);
 
     // ---- 3. 校验零拷贝:从 mmap 基址读 4 字节应是 "GGUF" magic ----
-    // GGUF 文件前 4 字节固定是 ASCII "GGUF"(见 01 章)。
-    // 能读出来 = data 真的指向了文件内容,不是悬空指针。
+    // GGUF 前 4 字节固定为 ASCII "GGUF"；能读出 = data 真指向文件内容，非悬空指针。
     char magic[5] = {0};
     std::memcpy(magic, mapping.addr, 4);
     if (std::strcmp(magic, "GGUF") != 0)

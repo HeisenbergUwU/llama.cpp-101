@@ -1,10 +1,5 @@
-// llama-io.cpp - 04 章「文件 IO 封装层」实现
-//
-// 把操作系统的 fopen/fseek/fread/fclose/mmap/munmap 藏起来，对外只暴露
-// 「文件」「映射」两个对象，上层不再出现任何裸系统调用。
-// llama_file 对齐上游 llama_mmap.cpp 的 llama_file::impl（FILE* 读元数据、
-// fd=fileno(fp) 供 mmap）；llama_mmap 对齐 llama_mmap::impl（mmap(...)）。
-// 教程去掉 prefetch/numa/madvise 等性能优化（非原理）。
+// llama-io.cpp - 04 章「文件 IO 封装层」实现：把 fopen/fseek/fread/fclose/mmap/munmap 藏起来，
+// 只暴露「文件」「映射」两对象；对齐 llama_mmap.cpp 的 impl，教程去掉 prefetch/numa/madvise 性能优化。
 
 #include "llama-io.h"
 
@@ -83,8 +78,7 @@ namespace llama
     }
 
     // ---- llama_mmap:移动构造/移动赋值 ----
-    // 把一个已 mmap 好的映射"移交"给另一个 llama_mmap(如从局部临时移入
-    // llama_model.mmap)。接管后要把源置于空，否则两者析构会 munmap 同一地址两次。
+    // 把 mmap 好的映射「移交」给另一个 llama_mmap（如 std::move 入 llama_model.mmap）；接管后必须把源 addr 置空，否则两者析构对同一地址 munmap 两次。
     llama_mmap::llama_mmap(llama_mmap &&other) noexcept
         : addr(other.addr), size(other.size)
     {

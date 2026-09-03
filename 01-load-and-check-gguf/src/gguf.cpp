@@ -1,8 +1,5 @@
 // gguf.cpp - GGUF 文件裸解析器实现（load + check）
-//
-// 读取逻辑对照上游 ggml/src/gguf.cpp 的 gguf_init_from_file，
-// 校验逻辑对照 src/llama-model-loader.h 的 llama_tensor_weight。
-// 教程实现：省去端序转换、多分片、mmap 等，只讲"怎么读 + 怎么查"。
+// 读取对照 ggml/src/gguf.cpp 的 gguf_init_from_file，校验对照 llama-model-loader.h 的 llama_tensor_weight；省掉端序/多分片/mmap。
 
 #include "gguf.h"
 
@@ -495,9 +492,8 @@ namespace gguf
             return false;
         }
 
-        // ---- 5. 数据一致性 check：每个张量的数据都在文件界内 ----
-        // 对应 llama-model-loader.h: offs = data_offset + tensor_offset;
-        //                       要求 offs + nbytes <= file_size
+        // ---- 5. 数据一致性 check：offs = data_offset + tensor_offset，须 offs + nbytes <= file_size ----
+        // 对应 llama-model-loader.h 的 llama_tensor_weight bounds 检查
         for (const auto &t : info.info)
         {
             uint64_t offs = info.offset + t.offset;

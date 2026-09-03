@@ -1,0 +1,5 @@
+/Users/qilei/llama.cpp-101/08-llama-model-kernel/build-kernel/CMakeFiles/kernel.dir
+/Users/qilei/llama.cpp-101/08-llama-model-kernel/build-kernel/CMakeFiles/test-kernel.dir
+/Users/qilei/llama.cpp-101/08-llama-model-kernel/build-kernel/CMakeFiles/run-kernel.dir
+/Users/qilei/llama.cpp-101/08-llama-model-kernel/build-kernel/CMakeFiles/edit_cache.dir
+/Users/qilei/llama.cpp-101/08-llama-model-kernel/build-kernel/CMakeFiles/rebuild_cache.dir

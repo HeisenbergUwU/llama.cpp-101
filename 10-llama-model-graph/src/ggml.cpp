@@ -57,11 +57,8 @@ namespace ggml
         return n + (GGML_MEM_ALIGN - remainder);
     }
 
-    // ---- 建池 ----
-    // 对齐上游 ggml_init（llama.cpp/ggml/src/ggml.c）：
-    //   - ggml_context 这个「句柄结构」单独 malloc 一块，**不占池子**；
-    //     它只是指向池子的管理器。mem_buffer 池子只放对象/tensor。
-    //   - 若 params.mem_buffer 为 NULL，内部 calloc 一块作为池子。
+    // ---- 建池 ---- 对齐上游 ggml_init：ggml_context 句柄单独 malloc、不占池子，只是管理器。
+    // mem_buffer 池子只放对象/tensor；params.mem_buffer 为 NULL 时内部 calloc 一块。
     ggml_context *ggml_init(struct ggml_init_params params)
     {
         // 句柄单独分配（这是「不透明句柄」的背面：调用方只见指针，
@@ -119,10 +116,8 @@ namespace ggml
         free(ctx);
     }
 
-    // ---- 池子切块：在末尾追加一块，返回对象头 ----
-    // 布局（对齐上游 ggml_new_object）：
-    //   [ ggml_object 头 ][ 载荷 size ]，obj->offs 指向载荷起点，
-    //   obj->size 是「对齐后的载荷大小」。下一个对象接在载荷之后。
+    // ---- 池子切块：末尾追加一块并返回对象头（对齐上游 ggml_new_object）----
+    // 布局 [ ggml_object 头 ][ 载荷 ]；obj->offs 指向载荷起点、obj->size 为对齐后大小，下一块接载荷之后。
     static ggml_object *ggml_new_object(ggml_context *ctx, enum ggml_object_type type, size_t size)
     {
         // 载荷向上取整到 16
@@ -269,6 +264,13 @@ namespace ggml
     {
         const int64_t ne[] = {ne0, ne1, ne2, ne3};
         return ggml_new_tensor(ctx, type, 4, ne);
+    }
+
+    ggml_tensor *ggml_view(ggml_context *ctx, ggml_tensor *a, int n_dims, const int64_t *ne)
+    {
+        // 与 a 共享同一块 data（offs=0）：ggml_new_tensor_impl 在 view_src 非空时
+        // 不分配新数据、把 data 指到 a->data。返回后由布局 op 重排 ne/nb。
+        return ggml_new_tensor_impl(ctx, a->type, n_dims, ne, a, 0);
     }
 
     ggml_tensor *ggml_set_name(ggml_tensor *tensor, const char *name)

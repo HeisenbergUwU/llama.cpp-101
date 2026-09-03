@@ -1,8 +1,5 @@
-// gguf.cpp - GGUF 文件裸解析器实现（load + check）
-//
-// 读取逻辑对照上游 ggml/src/gguf.cpp 的 gguf_init_from_file，
-// 校验逻辑对照 src/llama-model-loader.h 的 llama_tensor_weight。
-// 教程实现：省去端序转换、多分片、mmap 等，只讲"怎么读 + 怎么查"。
+// gguf.cpp - GGUF 裸解析器实现：读取对照 gguf.cpp::gguf_init_from_file，校验对照
+// llama-model-loader.h；省去端序转换/多分片/mmap，只讲「怎么读 + 怎么查」。
 
 #include "gguf.h"
 #include "llama-io.h" // 04/05 章：文件 IO 封装层（用 llama_file 读，不再裸调 fopen/fread）
@@ -13,9 +10,8 @@
 namespace gguf
 {
 
-    // 游标式顺序读取辅助（与上游 gguf.cpp 的 static helper 一致写法）。
-    // 读取直接调 llama_file::read_at，这里只补「游标推进」。
-    // 小端序读取一个元素
+    // 游标式顺序读取辅助（与上游 gguf.cpp 的 static helper 一致）；读取直接调
+    // llama_file::read_at，这里只补「游标推进」。小端序读取一个元素。
     template <typename T>
     static bool read_le(const llama::llama_file &file, uint64_t &pos, T &out)
     {
@@ -471,9 +467,8 @@ namespace gguf
             return false;
         }
 
-        // ---- 5. 数据一致性 check：每个张量的数据都在文件界内 ----
-        // 对应 llama-model-loader.h: offs = data_offset + tensor_offset;
-        //                       要求 offs + nbytes <= file_size
+        // ---- 5. 数据一致性 check：每个张量数据都在文件界内 ----
+        // 对应 llama-model-loader.h: offs=data_offset+tensor_offset，要求 offs+nbytes<=file_size。
         for (const auto &t : info.info)
         {
             uint64_t offs = info.offset + t.offset;

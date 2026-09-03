@@ -1,13 +1,5 @@
-// llama-model.h - 05 章「建 llama_model 聚合对象 + 加载权重」接口（最小化）
-//
-// 只声明结构与函数，实现留 src/llama-model.cpp。05 章撮合前几章：
-//   01 gguf：解析文件，给每个 tensor 的 offset/type/ne/name
-//   03 ggml：内存池，实例化 ggml_tensor（no_alloc=true，data 留钩子）
-//   04 llama-io：llama_mmap 映射整个文件，让 tensor->data 零拷贝指向文件
-//
-// 范围：只到「持有 110 个 ggml_tensor + mmap 映射」，不建图、不执行、
-// 不做 hparams/vocab、不拷权重。故不引入上游的 llama_model_params
-// （设备 offload / kv override / 进度回调等），留待推理章再说。
+// llama-model.h - 05 章「建 llama_model 聚合对象 + 加载权重」接口（最小化）。撮合前几章：
+// 01 gguf 解析、03 ggml 实例化（no_alloc 留钩子）、04 llama-io mmap 让 data 零拷贝指向文件；只到「持有 110 个 tensor + mmap」，不建图、留待推理章。
 
 #pragma once
 
@@ -48,11 +40,8 @@ namespace llama
         ~llama_model();
     };
 
-    // 加载入口：把 GGUF 文件加载成 llama_model
-    // 流程：llama_file 打开一次 -> llama_mmap 映射（同一 file）
-    //       -> gguf::gguf_load 复用该 file -> 每个 tensor: ggml_new_tensor + set_name
-    //                            + data = mmap.addr() + info.offset + ti.offset
-    // 成功 true 填好 llm；失败 false（err 写原因）。
+    // 加载入口：llama_file 开一次 -> llama_mmap 映射（同一 file）-> gguf_load 复用该 file ->
+    // 每个 tensor ggml_new_tensor+set_name，data=mmap.addr+offset+ti.offset；成功 true 填好 llm，失败 false（err 写原因）。
     bool load_model(const std::string &path, llama_model &llm, std::string &err);
 
     // ---- 06 章：模型语义（把平铺的裸张量挂成语义结构） ----
@@ -82,10 +71,8 @@ namespace llama
         std::vector<Layer> layers;                // n_layer 个，每个 9 个权重
     };
 
-    // 按 tensor 名把 llm.tensors 平铺列表重组进 model 的语义结构。
-    // 期望层数取 llm.hparams.n_layer（校验 model.layers.size() == n_layer）。
-    // 根张量（token_embd/output_norm/output）缺失或任一层缺任一个权重即报错。
-    // 成功 true 填好 model；失败 false（err 写原因）。
+    // 按 tensor 名把 llm.tensors 重组进 model 语义结构；期望层数取 llm.hparams.n_layer
+    // （校验 layers.size()==n_layer），缺根/任层缺权重即报错；成功 true 填好 model，失败 false（err 写原因）。
     bool assemble_model(const llama_model &llm, Model &model, std::string &err);
 
 } // namespace llama

@@ -1,15 +1,5 @@
-// llama-hparams.h - 06 章「模型语义：超参数 HParams」接口
-//
-// 从 GGUF 的 KV 元数据读出「决定架构的超参数」，并算出派生维度。
-// 06 章只做 tinybrainbot 这种 plain llama 需要的最小字段集——不抄上游动辄
-// 上百个字段的 llama_hparams（llama.cpp/src/llama-hparams.h），只保留能
-// 把本模型看懂的 ~10 个 + 派生 getter。
-//
-// 与上游对应关系（详见 reference.md）：
-//   KV 读取   : llama.cpp/src/llama-model.cpp 的 llama_model_base::load_hparams
-//   派生 getter: llama.cpp/src/llama-hparams.cpp 的 n_head/n_embd_head_k/n_gqa/
-//               n_embd_k_gqa/n_rot
-//   KV 键名   : llama.cpp/src/llama-arch.cpp 的 LLM_KV_* 字符串表（"<arch>.<subkey>"）
+// llama-hparams.h - 06 章「超参数 HParams」接口。从 GGUF KV 读出决定架构的超参数并算派生维度，只做 tinybrainbot 最小字段集（~10+getter）。
+// 不抄上游上百字段；对齐上游 load_hparams 与 llama-hparams.cpp 派生 getter。
 
 #pragma once
 

@@ -7,10 +7,8 @@
 namespace kernel
 {
 
-    // IEEE 754 半精度 -> 单精度（无三方依赖）
-    // 普通声明（非 inline）：定义在 kernel.cpp，供 test-kernel 等外部链接。
-    // 不要加 inline——若加了 inline 就必须把函数体放进头文件，否则其他编译单元
-    // 链接时找不到符号（undefined symbol）。
+    // IEEE 754 半精度 -> 单精度（无三方依赖）。普通声明（非 inline）：定义在
+    // kernel.cpp；加 inline 则须把函数体放头文件，否则其他编译单元链接缺符号。
     float fp16_to_fp32(uint16_t h);
 
     // 把权重张量 W 的第 row 行反量化成 F32 到 dst。整章唯一懂 F16 字节布局的函数：
@@ -22,8 +20,7 @@ namespace kernel
     void rms_norm(const float *x, const float *w, int n, float eps, float *out);
 
     // 矩阵乘（权重在前）：out[j] = Σ_i x[i] * Wrow[j][i]，j in 0..n_out-1。
-    // W 是 [n_in, n_out]（ne[0]=n_in 列=输入，ne[1]=n_out 行=输出，行主序）。
-    // scratch 长度 n_in，供 dequant_row 反量化当前行复用。
+    // W 是 [n_in, n_out]（ne[0]=列输入，ne[1]=行输出，行主序）；scratch 长度 n_in 供反量化行复用。
     void matmul(const float *x, const ggml::ggml_tensor *W, int n_in, int n_out, float *out, float *scratch);
 
     // SiLU（Swish 无参数）：in place，x = x/(1+exp(-x))。

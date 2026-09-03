@@ -1,12 +1,5 @@
-// ggml.h - 迷你 ggml：数据结构声明（02 章）
-//
-// 教程 02 章的类型层：只声明常量、枚举、结构体，不含任何函数接口或实现。
-// 命名与字段对齐上游 llama.cpp/ggml/include/ggml.h 与 ggml/src/ggml.c。
-// 所有类型放进 `namespace ggml`，避免与 01 章的全局 `GGML_TYPE_*` 冲突。
-//
-// 类型裁剪：主模型 tinybrainbot（110 tensor）只用 F32/F16，Bonsai（量化对照）
-// 用 Q1_0+F32，故实际用到的类型只有三个。但 GGUF 里 tensor 的 type 是 int32，
-// 枚举编号必须与文件一致，因此照抄上游，避免量化类型错位。
+// ggml.h - 迷你 ggml：数据结构声明（02 章），只声明常量/枚举/结构体，放进 namespace ggml 避免与 01 全局 GGML_TYPE_* 冲突。
+// 类型只留三个（tinybrainbot F32/F16、Bonsai Q1_0+F32）；但 GGUF 的 type 是 int32，枚举编号照抄上游不能错位。
 
 #pragma once
 
@@ -46,9 +39,7 @@ namespace ggml
     };
 
     // ---- tensor ----
-    // 一个 n 维张量的「结构 + 数据指针」，是池子里的核心对象。
-    // 字段对齐上游 ggml_tensor（ggml.h 680 行），保留加载/布局所需，
-    // 暂不引入 op/src[]/buffer 等建图、后端字段（后续章节再补）。
+    // n 维张量的「结构+数据指针」，池子核心对象；字段对齐上游 ggml_tensor，暂不引入 op/src/buffer 等建图、后端字段。
     struct ggml_tensor
     {
         enum ggml_type type; // 数据类型
@@ -66,8 +57,7 @@ namespace ggml
     };
 
     // ---- context ----
-    // 只有声明（forward declaration）：ggml_context 是内部实现，字段藏在 ggml.cpp，
-    // 外部只能拿到不透明句柄，通过函数接口操作。
+    // 仅有 forward declaration：ggml_context 是内部实现，字段藏 ggml.cpp，外部拿不透明句柄经函数接口操作。
     struct ggml_context;
 
     // ggml_init 的入参（对照上游 ggml.h 672 行）。

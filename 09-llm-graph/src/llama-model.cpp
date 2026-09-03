@@ -1,14 +1,5 @@
 // llama-model.cpp - 05 章「建 llama_model 聚合对象 + 加载权重」实现
-//
-// load_model 的 5 步流程（对齐上游 llama-model.cpp 的 llama_model_loader）：
-//   1. llama_file 打开文件（拿 fd + size，替代裸 open/fstat）——文件只开一次
-//   2. llama_mmap 映射整个文件（零拷贝，替代裸 mmap）
-//   3. gguf::gguf_load 复用第 1 步的 file 解析元数据（不拷权重，只管 info，
-//                      先拿到 n_tensors 供第 4 步动态算池子大小）
-//   4. ggml_init  建迷你 ggml 池子（no_alloc=true：data 不占池子，留钩子；
-//                      大小 = tensor 结构数 x 单结构字节数，动态算）
-//   5. 循环每个 tensor：ggml_new_tensor 实例化 + ggml_set_name 定名
-//                       + data = mmap.addr() + (数据段起点 + tensor.offset)  零拷贝挂载
+// load_model 的 5 步流程（对齐上游 llama-model.cpp 的 llama_model_loader）：1. llama_file 打开（拿 fd+size，文件只开一次）；2. llama_mmap 映射整个文件；3. gguf::gguf_load 复用同一 file 解析元数据（先拿 n_tensors 供第 4 步动态算池子大小）；4. ggml_init 建迷你池子（no_alloc=true，data 留钩子，大小按 tensor 结构数动态算）；5. 循环每 tensor：ggml_new_tensor+set_name+data = mmap.addr()+(数据段起点+tensor.offset) 零拷贝挂载。
 
 #include "llama-model.h"
 
@@ -22,8 +13,7 @@ namespace llama
 {
 
     // ---- 析构 ----
-    // 池子里只放 ggml_tensor 结构，释放即可；mmap 是 llama_mmap 成员，
-    // 会在本析构体执行完后，由它自己的析构函数自动 munmap（RAII）。
+    // 池子里只放 ggml_tensor 结构，释放即可；mmap 是 llama_mmap 成员，会在本析构体执行完后由它自己的析构自动 munmap（RAII）。
     llama_model::~llama_model()
     {
         if (ctx != nullptr)
@@ -33,9 +23,7 @@ namespace llama
     }
 
     // ---- 加载入口：把 GGUF 文件加载成 llama_model ----
-    // 用局部变量先做全部工作，最后一次性写进 llm —— 这样中途失败时
-    // llm 保持「全空」的安全初始态，析构不会双重释放。
-    // 注意：文件只打开一次，同一份 llama_file 既喂给 gguf_load 又给 llama_mmap。
+    // 用局部变量先做全部工作、最后一次性写进 llm——中途失败时 llm 保持「全空」安全初始态，析构不会双重释放；文件只打开一次，同一份 llama_file 既喂 gguf_load 又给 llama_mmap。
     bool load_model(const std::string &path, llama_model &llm, std::string &err)
     {
         // ---- 1. 打开文件一次（llama_file：open + fstat + RAII） ----
@@ -63,9 +51,8 @@ namespace llama
             return false;
         }
 
-        // ---- 06 章：从 KV 解析超参数 ----
-        // 直接读 gguf_context.kv（只读元数据，不依赖后面的 tensor 实例化），
-        // 结果存进 llm.hparams 供语义组装/前向使用（对齐上游 load_hparams 的时机）。
+    // ---- 06 章：从 KV 解析超参数 ----
+    // 直接读 gguf_context.kv（只读元数据，不依赖后续 tensor 实例化），结果存进 llm.hparams 供语义组装/前向使用（对齐上游 load_hparams 的时机）。
         if (!parse_hparams(gguf_context, llm.hparams, err))
         {
             return false;
@@ -79,9 +66,7 @@ namespace llama
         }
 
         // ---- 4. ggml_init：建迷你 ggml 池子（大小按 tensor 个数动态算） ----
-        // no_alloc=true：不为 tensor 数据留空间，data 留空由 mmap 填，池子只装结构。
-        // 每个 tensor 占：ggml_object 头(32B) + align16(sizeof(ggml_tensor)=160B) = 192B；
-        // 首个对象头从池子起点开始，故再加一份 32B；留 1KB 余量防边界溢出。
+        // no_alloc=true：不装数据，池子只装结构。每 tensor 占：ggml_object 头(32B)+align16(sizeof(ggml_tensor)=160B)=192B；首个对象头从池子起点开始故再加一份 32B；留 1KB 余量防边界溢出。
         const size_t obj_obj_hdr = 32;                                          // sizeof(ggml_object)
         const size_t obj_tensor = ((sizeof(ggml::ggml_tensor) + 15) / 16) * 16; // 载荷对齐到 16
         const size_t pool_size = obj_obj_hdr + gguf_context.info.size() * (obj_obj_hdr + obj_tensor) + 1024;
@@ -93,8 +78,7 @@ namespace llama
         }
 
         // ---- 5. 逐个 tensor：实例化结构 + 定名 + 零拷贝挂数据 ----
-        // 数据段起点 = gguf_context.offset（对齐后），每个 tensor 的数据相对它再偏 ti.offset。
-        // 故 data = mmap基址 + gguf_context.offset + ti.offset，直接指向文件里那块权重字节。
+        // 数据段起点 = gguf_context.offset（对齐后），每 tensor 数据相对它再偏 ti.offset；故 data = mmap基址 + gguf_context.offset + ti.offset，直接指向文件里那块权重字节。
         for (size_t i = 0; i < gguf_context.info.size(); i++)
         {
             const gguf::gguf_tensor_info &ti = gguf_context.info[i];
@@ -116,8 +100,7 @@ namespace llama
         }
 
         // ---- 全部成功，一次性提交到 llm ----
-        // mapping 是局部临时，用 std::move 把映射转移给 llm.mmap
-        // （llama_mmap 禁拷贝、可移动，移动后 mapping 的 addr 置空不再 munmap）。
+        // mapping 是局部临时，用 std::move 把映射转移给 llm.mmap（禁拷贝、可移动，移动后 mapping.addr 置空不再 munmap）。
         llm.ctx = ctx;
         // 移动而非拷贝：mmap 是独占资源只能搬家——把 mapping 的 addr/size 让给
         // llm.mmap，同时把 mapping.addr 置空；这样析构时不会对同一地址双 munmap。
@@ -128,11 +111,7 @@ namespace llama
     }
 
     // ---- 06 章：模型语义组装 ----
-    // 已知 tensor 名列表（plain llama，见 llama-arch.cpp 的 LLM_TN_* 表）：
-    //   根  : token_embd.weight / output_norm.weight / output.weight
-    //   层  : blk.{il}.attn_norm / attn_q / attn_k / attn_v / attn_output
-    //                       / ffn_norm / ffn_gate / ffn_up / ffn_down （后缀统一 .weight）
-    // 先建立 name -> ggml_tensor* 的查找表，再按名逐个挂接，缺一即报错。
+    // 已知 tensor 名列表（plain llama，见 llama-arch.cpp 的 LLM_TN_* 表）：根=token_embd.weight/output_norm.weight/output.weight；层=blk.{il}.attn_norm/attn_q/attn_k/attn_v/attn_output/ffn_norm/ffn_gate/ffn_up/ffn_down（后缀统一 .weight）。先建 name->ggml_tensor* 查找表，再按名逐个挂接，缺一即报错。
     bool assemble_model(const llama_model &llm, Model &model, std::string &err)
     {
         // name -> tensor（名字唯一；从平铺列表线性查找即可）
@@ -149,9 +128,7 @@ namespace llama
         };
 
         // ---- 根张量 ----
-        // output.weight 是可选的（plain llama 常做「权重绑定」：lm_head 复用 token_embd，
-        // 见 src/models/llama.cpp 41-46：output 缺失时直接指向 tok_embd）。故 output 允许
-        // 缺失，此时 model.output 与 model.token_embd 指向同一块。
+        // output.weight 可选（plain llama 常做「权重绑定」：lm_head 复用 token_embd，见 src/models/llama.cpp 41-46，output 缺失时直接指向 tok_embd）；故 output 允许缺失，此时 model.output 与 model.token_embd 指向同一块。
         model.token_embd = find("token_embd.weight");
         model.output_norm = find("output_norm.weight");
         model.output = find("output.weight");

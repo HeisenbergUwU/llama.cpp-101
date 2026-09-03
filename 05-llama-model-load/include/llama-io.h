@@ -1,12 +1,5 @@
-// llama-io.h - 04 章「文件 IO 封装层」接口
-//
-// 把裸系统调用（open/fstat/mmap/munmap/close/fread/fseek）封装成两个小类型，
-// 让上层（gguf / llama_model）不直接碰系统调用，只看得到「文件」「映射」两个概念。
-// 对齐上游 llama.cpp/src/llama-mmap.h 的 llama_file 与 llama_mmap，但教程版
-// 去掉 pimpl，直接暴露成员，方便读者看穿每一层。
-//
-// llama_file：内部持 FILE*（缓冲顺序读元数据），同时暴露底层 fd（供 mmap 零拷贝）。
-// llama_mmap：只负责把整个文件映射进地址空间。
+// llama-io.h - 04 章「文件 IO 封装层」接口：把裸系统调用封装成「文件」「映射」两个类型，
+// 对齐上游 llama-mmap.h 但去 pimpl 直露成员；llama_file 持 FILE* 读元数据+暴露 fd 供 mmap，llama_mmap 负责映射整个文件。
 
 #pragma once
 
@@ -18,10 +11,7 @@ namespace llama
 {
 
     // ---- 文件封装:open + fstat + 顺序读 + close ----
-    // 对齐上游 struct llama_file(llama-mmap.h:16)。教程去掉 pimpl，
-    // 但保留两种能力:
-    //   ① 顺序缓冲读(read_at / read_le)——gguf 解析元数据用
-    //   ② 裸 fd(供 mmap)——mmap 零拷贝用
+    // 对齐上游 llama_file(llama-mmap.h:16)，去 pimpl 但保留两种能力：①顺序缓冲读(gguf 解析元数据) ②裸 fd(mmap 零拷贝)。
     struct llama_file
     {
         FILE *fp = nullptr; // 带缓冲的文件句柄(顺序读元数据用;析构 fclose 它)
@@ -49,9 +39,7 @@ namespace llama
     };
 
     // ---- 内存映射封装:mmap + munmap ----
-    // 对齐上游 struct llama_mmap(llama-mmap.h:43)。
-    // 教程简化:去掉 prefetch/numa/MAP_POPULATE/madvise 等性能调优，
-    // 只留核心:mmap 整个文件(PROT_READ | MAP_PRIVATE)、拿地址、析构时 munmap。
+    // 对齐上游 llama_mmap(llama-mmap.h:43)，简化只留核心：mmap 整个文件(PROT_READ|MAP_PRIVATE)、拿地址、析构 munmap。
     struct llama_mmap
     {
         void *addr = nullptr; // mmap 返回的基址(页对齐)

@@ -1,65 +1,32 @@
 # 00 - llama.cpp 是什么
 
-[llama.cpp](https://github.com/ggerganov/llama.cpp) 是一个用 **C/C++** 编写的、以**纯 CPU** 为目标的大语言模型（LLM）推理引擎。它由 Georgi Gerganov 于 2023 年 3 月发起，最初是为了在普通 MacBook 上跑 Meta 的 LLaMA 模型，随后发展成覆盖面最广的开源 LLM 运行时之一：不仅能跑在 CPU 上，也能跑在 GPU（CUDA / Metal / Vulkan / SYCL 等）上，被大量桌面应用和嵌入式环境采用。
+> 用 C/C++ 写的 LLM 推理引擎，本项目按它的真实分层自写最小版本来讲清底层原理。
 
-本项目（llama.cpp-101）要做的，就是**从零讲清楚它的底层原理**，抽丝剥茧简单实现一个 llama.cpp-server。
+## 做什么
+- 介绍 llama.cpp：从在 MacBook 上跑 LLaMA 起家，现覆盖 CPU 与 GPU（CUDA / Metal / Vulkan）。
+- 拆解两大核心问题：权重怎么存读（GGUF，01 章）与推理怎么算（ggml 计算图）。
+- 梳理仓库三层架构：应用层（examples / server）、模型层（llama-model-loader 读 GGUF）、计算层（ggml 张量运算）。
+- 列出 `llama.cpp/` 关键目录分布（`include`/`src`/`ggml`/`examples`/`common`/`tests`）。
+- 对照一次推理的完整流程，映射到后续各章分工。
+- 说明教学路线：不教"用 llama.cpp"，而是每层自写最小实现再对照上游源码。
 
-## 一、它解决什么问题
+## 怎么跑
 
-一个训练好的 LLM，本质是一堆巨大的**权重张量（tensor）**加上**分词器（tokenizer）、超参数、对话模板**。要在本地跑起来，面临着两个核心问题：
+本章只有讲解，无代码、无 Makefile，不涉及运行。
 
-1. **权重怎么存、怎么读**：几百 GB 的原始权重必须量化压缩，并且要能被快速加载。→ 这就是 **GGUF** 格式（上一章 / 01 章的主题）。
-2. **推理怎么算**：如何把加载的权重做前向计算，一步步生成 token。→ 这就是 **ggml** 计算图和推理引擎。
+## 关键文件
 
-llama.cpp 的架构可以概括成三个从上到下的层次：
+| 文件 | 作用 |
+|------|------|
+| `README.md` | 本章全部讲解内容（无 src / include / tests） |
 
-```
-┌──────────────────────────────────────────────┐
-│  应用层   main / server / 各 examples        │   命令行、HTTP 服务、聊天 UI
-├──────────────────────────────────────────────┤
-│  模型层   src/llama-model-loader 读 GGUF     │   加载权重、建 tensor、管理 context
-├──────────────────────────────────────────────┤
-│  计算层   ggml（张量运算 + 计算图 + 量化）    │   核心矩阵运算、自动微分、KV 缓存
-└──────────────────────────────────────────────┘
-```
+## 对照上游
 
-## 二、仓库结构一眼看（以 `llama.cpp/` 内实际代码为准）
-
-在 `llama.cpp/` 目录下面，最值得关注的几个部分：
-
-| 路径                  | 作用                                                                            |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `include/llama.h`     | 对外 C API：加载模型、初始化 context、分词、采样（这是"模型层 + 应用层"的边界） |
-| `src/`                | 模型加载（`src/llama-model-loader.*`）、推理调度、采样、KV 缓存等实现           |
-| `ggml/`               | **ggml 张量库**——底层计算图、张量运算、CPU 内核、量化格式                       |
-| `ggml/include/gguf.h` | **GGUF 文件格式**定义 + 读写 API（01 章的核心对象）                             |
-| `examples/`           | 各种可执行 demo：`main`、`server`、`simple`、`embedding`、`llama-eval` 等       |
-| `common/`             | examples 共用的辅助代码（命令行解析、采样封装等）                               |
-| `tests/`              | 自定义测试（无框架，`test_*.cpp` 自带 `main`）                                  |
-
-> 大体上：**`ggml` 管"怎么算"，`src/llama.cpp` + `include/llama.h` 管"怎么跑一个模型"，`examples` 管"怎么和用户交互"**。而 GGUF 是这几个层次之间的"模型文件协议"。
-
-## 三、一次推理的流程（后续章节会逐步展开）
-
-以 `examples/main` 为例，跑一次对话大约经历这几步（对应我们后面 01/02/03…… 的分章）：
-
-```
-1. 读 GGUF 文件头 + KV + tensor 元数据   ← 01 章：load + check（只读不建模型）
-2. 校验权重一致性（offset / 大小）       ← 01 章末 / 02 章
-3. 创建 ggml_tensor、映射/加载权重       ← 02 章：接入 ggml
-4. 初始化 llama_context，加载分词器       ← 03 章
-5. 输入文字 → tokenize → 前向计算（prefill）
-6. 采样下一个 token → 更新 KV 缓存（decode）
-7. 反复直到输出结束
-```
-
-## 四、本项目为什么用"从零实现"来讲原理
-
-llama.cpp 本身功能极其庞大（支持几十种量化、多后端、各种加速）。如果直接读它的源码，很容易淹没在细节里。所以这个教程的路线是：
-
-- **不教你"用 llama.cpp"**，而是**按它的真实分层，自己从零写一个尽量小的简化版**，每写一层就对照着读对应的上游源码，把原理讲清楚。
-- 比如 01 章我们自己写一个**不含 ggml 依赖的 GGUF 解析器**，只做 load + check——这和 llama.cpp 里 `gguf_init_from_file` 的"读元数据"阶段是一一对应的。
+- `llama.cpp/include/llama.h` —— 对外 C API（加载、context、分词、采样）
+- `llama.cpp/src/` —— 模型加载（`llama-model-loader.*`）、推理调度、采样、KV 缓存
+- `llama.cpp/ggml/` —— ggml 张量库：计算图、张量运算、CPU 内核、量化格式
+- `llama.cpp/ggml/include/gguf.h` —— GGUF 文件格式定义 + 读写 API（01 章核心对象）
+- `llama.cpp/examples/` —— 可执行 demo：`main`、`server`、`simple`、`embedding`
 
 ---
-
-下一章：**01 - 加载并校验 GGUF**（只读 GGUF，把它的 header、KV、tensor 元数据读进来并做一致性校验，先不碰推理）。
+下一章：**01 - 加载并校验 GGUF**（裸解析器只读 GGUF，读 header / KV / tensor 元数据并一致性校验，先不碰推理）。
