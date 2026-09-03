@@ -1,10 +1,11 @@
+/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/ggml.dir
+/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/ggml-kernel.dir
+/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/ggml-ops.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/ggml-graph.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/test-ggml-graph.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/run-graph.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/edit_cache.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles/rebuild_cache.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/src/kernel/CMakeFiles/kernel.dir
-/Users/qilei/llama.cpp-101/09-llm-graph/build/src/kernel/CMakeFiles/test-kernel.dir
-/Users/qilei/llama.cpp-101/09-llm-graph/build/src/kernel/CMakeFiles/run-kernel.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/src/kernel/CMakeFiles/edit_cache.dir
 /Users/qilei/llama.cpp-101/09-llm-graph/build/src/kernel/CMakeFiles/rebuild_cache.dir

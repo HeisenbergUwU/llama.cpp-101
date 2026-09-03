@@ -1,8 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.o"
   "CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.o.d"
-  "CMakeFiles/ggml-graph.dir/src/ggml.cpp.o"
-  "CMakeFiles/ggml-graph.dir/src/ggml.cpp.o.d"
   "libggml-graph.a"
   "libggml-graph.pdb"
 )

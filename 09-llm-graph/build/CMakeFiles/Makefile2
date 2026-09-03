@@ -63,12 +63,18 @@ CMAKE_BINARY_DIR = /Users/qilei/llama.cpp-101/09-llm-graph/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
+all: CMakeFiles/ggml.dir/all
+all: CMakeFiles/ggml-kernel.dir/all
+all: CMakeFiles/ggml-ops.dir/all
 all: CMakeFiles/ggml-graph.dir/all
 all: CMakeFiles/test-ggml-graph.dir/all
 all: src/kernel/all
 .PHONY : all
 
 # The main recursive "codegen" target.
+codegen: CMakeFiles/ggml.dir/codegen
+codegen: CMakeFiles/ggml-kernel.dir/codegen
+codegen: CMakeFiles/ggml-ops.dir/codegen
 codegen: CMakeFiles/ggml-graph.dir/codegen
 codegen: CMakeFiles/test-ggml-graph.dir/codegen
 codegen: src/kernel/codegen
@@ -79,6 +85,9 @@ preinstall: src/kernel/preinstall
 .PHONY : preinstall
 
 # The main recursive "clean" target.
+clean: CMakeFiles/ggml.dir/clean
+clean: CMakeFiles/ggml-kernel.dir/clean
+clean: CMakeFiles/ggml-ops.dir/clean
 clean: CMakeFiles/ggml-graph.dir/clean
 clean: CMakeFiles/test-ggml-graph.dir/clean
 clean: CMakeFiles/run-graph.dir/clean
@@ -90,12 +99,10 @@ clean: src/kernel/clean
 
 # Recursive "all" directory target.
 src/kernel/all: src/kernel/CMakeFiles/kernel.dir/all
-src/kernel/all: src/kernel/CMakeFiles/test-kernel.dir/all
 .PHONY : src/kernel/all
 
 # Recursive "codegen" directory target.
 src/kernel/codegen: src/kernel/CMakeFiles/kernel.dir/codegen
-src/kernel/codegen: src/kernel/CMakeFiles/test-kernel.dir/codegen
 .PHONY : src/kernel/codegen
 
 # Recursive "preinstall" directory target.
@@ -104,23 +111,121 @@ src/kernel/preinstall:
 
 # Recursive "clean" directory target.
 src/kernel/clean: src/kernel/CMakeFiles/kernel.dir/clean
-src/kernel/clean: src/kernel/CMakeFiles/test-kernel.dir/clean
-src/kernel/clean: src/kernel/CMakeFiles/run-kernel.dir/clean
 .PHONY : src/kernel/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/ggml.dir
+
+# All Build rule for target.
+CMakeFiles/ggml.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=1,2 "Built target ggml"
+.PHONY : CMakeFiles/ggml.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/ggml.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/ggml.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
+.PHONY : CMakeFiles/ggml.dir/rule
+
+# Convenience name for target.
+ggml: CMakeFiles/ggml.dir/rule
+.PHONY : ggml
+
+# codegen rule for target.
+CMakeFiles/ggml.dir/codegen:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=1,2 "Finished codegen for target ggml"
+.PHONY : CMakeFiles/ggml.dir/codegen
+
+# clean rule for target.
+CMakeFiles/ggml.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/clean
+.PHONY : CMakeFiles/ggml.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/ggml-kernel.dir
+
+# All Build rule for target.
+CMakeFiles/ggml-kernel.dir/all: CMakeFiles/ggml.dir/all
+CMakeFiles/ggml-kernel.dir/all: src/kernel/CMakeFiles/kernel.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=5,6 "Built target ggml-kernel"
+.PHONY : CMakeFiles/ggml-kernel.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/ggml-kernel.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 6
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/ggml-kernel.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
+.PHONY : CMakeFiles/ggml-kernel.dir/rule
+
+# Convenience name for target.
+ggml-kernel: CMakeFiles/ggml-kernel.dir/rule
+.PHONY : ggml-kernel
+
+# codegen rule for target.
+CMakeFiles/ggml-kernel.dir/codegen:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=5,6 "Finished codegen for target ggml-kernel"
+.PHONY : CMakeFiles/ggml-kernel.dir/codegen
+
+# clean rule for target.
+CMakeFiles/ggml-kernel.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/clean
+.PHONY : CMakeFiles/ggml-kernel.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/ggml-ops.dir
+
+# All Build rule for target.
+CMakeFiles/ggml-ops.dir/all: CMakeFiles/ggml.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=7,8 "Built target ggml-ops"
+.PHONY : CMakeFiles/ggml-ops.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/ggml-ops.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 4
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/ggml-ops.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
+.PHONY : CMakeFiles/ggml-ops.dir/rule
+
+# Convenience name for target.
+ggml-ops: CMakeFiles/ggml-ops.dir/rule
+.PHONY : ggml-ops
+
+# codegen rule for target.
+CMakeFiles/ggml-ops.dir/codegen:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=7,8 "Finished codegen for target ggml-ops"
+.PHONY : CMakeFiles/ggml-ops.dir/codegen
+
+# clean rule for target.
+CMakeFiles/ggml-ops.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/clean
+.PHONY : CMakeFiles/ggml-ops.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/ggml-graph.dir
 
 # All Build rule for target.
+CMakeFiles/ggml-graph.dir/all: CMakeFiles/ggml.dir/all
+CMakeFiles/ggml-graph.dir/all: CMakeFiles/ggml-kernel.dir/all
+CMakeFiles/ggml-graph.dir/all: CMakeFiles/ggml-ops.dir/all
 CMakeFiles/ggml-graph.dir/all: src/kernel/CMakeFiles/kernel.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-graph.dir/build.make CMakeFiles/ggml-graph.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-graph.dir/build.make CMakeFiles/ggml-graph.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=1,2,3 "Built target ggml-graph"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=3,4 "Built target ggml-graph"
 .PHONY : CMakeFiles/ggml-graph.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/ggml-graph.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 5
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 10
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/ggml-graph.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
 .PHONY : CMakeFiles/ggml-graph.dir/rule
@@ -132,7 +237,7 @@ ggml-graph: CMakeFiles/ggml-graph.dir/rule
 # codegen rule for target.
 CMakeFiles/ggml-graph.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-graph.dir/build.make CMakeFiles/ggml-graph.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=1,2,3 "Finished codegen for target ggml-graph"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=3,4 "Finished codegen for target ggml-graph"
 .PHONY : CMakeFiles/ggml-graph.dir/codegen
 
 # clean rule for target.
@@ -144,16 +249,19 @@ CMakeFiles/ggml-graph.dir/clean:
 # Target rules for target CMakeFiles/test-ggml-graph.dir
 
 # All Build rule for target.
+CMakeFiles/test-ggml-graph.dir/all: CMakeFiles/ggml.dir/all
+CMakeFiles/test-ggml-graph.dir/all: CMakeFiles/ggml-kernel.dir/all
+CMakeFiles/test-ggml-graph.dir/all: CMakeFiles/ggml-ops.dir/all
 CMakeFiles/test-ggml-graph.dir/all: CMakeFiles/ggml-graph.dir/all
 CMakeFiles/test-ggml-graph.dir/all: src/kernel/CMakeFiles/kernel.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test-ggml-graph.dir/build.make CMakeFiles/test-ggml-graph.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test-ggml-graph.dir/build.make CMakeFiles/test-ggml-graph.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=6,7 "Built target test-ggml-graph"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=11,12 "Built target test-ggml-graph"
 .PHONY : CMakeFiles/test-ggml-graph.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test-ggml-graph.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 7
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 12
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test-ggml-graph.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
 .PHONY : CMakeFiles/test-ggml-graph.dir/rule
@@ -165,7 +273,7 @@ test-ggml-graph: CMakeFiles/test-ggml-graph.dir/rule
 # codegen rule for target.
 CMakeFiles/test-ggml-graph.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test-ggml-graph.dir/build.make CMakeFiles/test-ggml-graph.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=6,7 "Finished codegen for target test-ggml-graph"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=11,12 "Finished codegen for target test-ggml-graph"
 .PHONY : CMakeFiles/test-ggml-graph.dir/codegen
 
 # clean rule for target.
@@ -185,7 +293,7 @@ CMakeFiles/run-graph.dir/all: CMakeFiles/test-ggml-graph.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/run-graph.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 7
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 12
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/run-graph.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
 .PHONY : CMakeFiles/run-graph.dir/rule
@@ -212,7 +320,7 @@ CMakeFiles/run-graph.dir/clean:
 src/kernel/CMakeFiles/kernel.dir/all:
 	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/depend
 	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=4,5 "Built target kernel"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=9,10 "Built target kernel"
 .PHONY : src/kernel/CMakeFiles/kernel.dir/all
 
 # Build rule for subdir invocation for target.
@@ -229,77 +337,13 @@ kernel: src/kernel/CMakeFiles/kernel.dir/rule
 # codegen rule for target.
 src/kernel/CMakeFiles/kernel.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=4,5 "Finished codegen for target kernel"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=9,10 "Finished codegen for target kernel"
 .PHONY : src/kernel/CMakeFiles/kernel.dir/codegen
 
 # clean rule for target.
 src/kernel/CMakeFiles/kernel.dir/clean:
 	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/clean
 .PHONY : src/kernel/CMakeFiles/kernel.dir/clean
-
-#=============================================================================
-# Target rules for target src/kernel/CMakeFiles/test-kernel.dir
-
-# All Build rule for target.
-src/kernel/CMakeFiles/test-kernel.dir/all: src/kernel/CMakeFiles/kernel.dir/all
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/depend
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=8,9 "Built target test-kernel"
-.PHONY : src/kernel/CMakeFiles/test-kernel.dir/all
-
-# Build rule for subdir invocation for target.
-src/kernel/CMakeFiles/test-kernel.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 4
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/kernel/CMakeFiles/test-kernel.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
-.PHONY : src/kernel/CMakeFiles/test-kernel.dir/rule
-
-# Convenience name for target.
-test-kernel: src/kernel/CMakeFiles/test-kernel.dir/rule
-.PHONY : test-kernel
-
-# codegen rule for target.
-src/kernel/CMakeFiles/test-kernel.dir/codegen:
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=8,9 "Finished codegen for target test-kernel"
-.PHONY : src/kernel/CMakeFiles/test-kernel.dir/codegen
-
-# clean rule for target.
-src/kernel/CMakeFiles/test-kernel.dir/clean:
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/clean
-.PHONY : src/kernel/CMakeFiles/test-kernel.dir/clean
-
-#=============================================================================
-# Target rules for target src/kernel/CMakeFiles/run-kernel.dir
-
-# All Build rule for target.
-src/kernel/CMakeFiles/run-kernel.dir/all: src/kernel/CMakeFiles/test-kernel.dir/all
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/run-kernel.dir/build.make src/kernel/CMakeFiles/run-kernel.dir/depend
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/run-kernel.dir/build.make src/kernel/CMakeFiles/run-kernel.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num= "Built target run-kernel"
-.PHONY : src/kernel/CMakeFiles/run-kernel.dir/all
-
-# Build rule for subdir invocation for target.
-src/kernel/CMakeFiles/run-kernel.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 4
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/kernel/CMakeFiles/run-kernel.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles 0
-.PHONY : src/kernel/CMakeFiles/run-kernel.dir/rule
-
-# Convenience name for target.
-run-kernel: src/kernel/CMakeFiles/run-kernel.dir/rule
-.PHONY : run-kernel
-
-# codegen rule for target.
-src/kernel/CMakeFiles/run-kernel.dir/codegen: src/kernel/CMakeFiles/test-kernel.dir/all
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/run-kernel.dir/build.make src/kernel/CMakeFiles/run-kernel.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num= "Finished codegen for target run-kernel"
-.PHONY : src/kernel/CMakeFiles/run-kernel.dir/codegen
-
-# clean rule for target.
-src/kernel/CMakeFiles/run-kernel.dir/clean:
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/run-kernel.dir/build.make src/kernel/CMakeFiles/run-kernel.dir/clean
-.PHONY : src/kernel/CMakeFiles/run-kernel.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

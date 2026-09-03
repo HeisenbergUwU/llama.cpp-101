@@ -117,6 +117,45 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named ggml
+
+# Build rule for target.
+ggml: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ggml
+.PHONY : ggml
+
+# fast build rule for target.
+ggml/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/build
+.PHONY : ggml/fast
+
+#=============================================================================
+# Target rules for targets named ggml-kernel
+
+# Build rule for target.
+ggml-kernel: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ggml-kernel
+.PHONY : ggml-kernel
+
+# fast build rule for target.
+ggml-kernel/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/build
+.PHONY : ggml-kernel/fast
+
+#=============================================================================
+# Target rules for targets named ggml-ops
+
+# Build rule for target.
+ggml-ops: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ggml-ops
+.PHONY : ggml-ops
+
+# fast build rule for target.
+ggml-ops/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/build
+.PHONY : ggml-ops/fast
+
+#=============================================================================
 # Target rules for targets named ggml-graph
 
 # Build rule for target.
@@ -168,32 +207,6 @@ kernel/fast:
 	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/build
 .PHONY : kernel/fast
 
-#=============================================================================
-# Target rules for targets named test-kernel
-
-# Build rule for target.
-test-kernel: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test-kernel
-.PHONY : test-kernel
-
-# fast build rule for target.
-test-kernel/fast:
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/build
-.PHONY : test-kernel/fast
-
-#=============================================================================
-# Target rules for targets named run-kernel
-
-# Build rule for target.
-run-kernel: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 run-kernel
-.PHONY : run-kernel
-
-# fast build rule for target.
-run-kernel/fast:
-	$(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/run-kernel.dir/build.make src/kernel/CMakeFiles/run-kernel.dir/build
-.PHONY : run-kernel/fast
-
 src/ggml-graph.o: src/ggml-graph.cpp.o
 .PHONY : src/ggml-graph.o
 
@@ -218,12 +231,60 @@ src/ggml-graph.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-graph.dir/build.make CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.s
 .PHONY : src/ggml-graph.cpp.s
 
+src/ggml-kernel.o: src/ggml-kernel.cpp.o
+.PHONY : src/ggml-kernel.o
+
+# target to build an object file
+src/ggml-kernel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/src/ggml-kernel.cpp.o
+.PHONY : src/ggml-kernel.cpp.o
+
+src/ggml-kernel.i: src/ggml-kernel.cpp.i
+.PHONY : src/ggml-kernel.i
+
+# target to preprocess a source file
+src/ggml-kernel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/src/ggml-kernel.cpp.i
+.PHONY : src/ggml-kernel.cpp.i
+
+src/ggml-kernel.s: src/ggml-kernel.cpp.s
+.PHONY : src/ggml-kernel.s
+
+# target to generate assembly for a file
+src/ggml-kernel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-kernel.dir/build.make CMakeFiles/ggml-kernel.dir/src/ggml-kernel.cpp.s
+.PHONY : src/ggml-kernel.cpp.s
+
+src/ggml-ops.o: src/ggml-ops.cpp.o
+.PHONY : src/ggml-ops.o
+
+# target to build an object file
+src/ggml-ops.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/src/ggml-ops.cpp.o
+.PHONY : src/ggml-ops.cpp.o
+
+src/ggml-ops.i: src/ggml-ops.cpp.i
+.PHONY : src/ggml-ops.i
+
+# target to preprocess a source file
+src/ggml-ops.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/src/ggml-ops.cpp.i
+.PHONY : src/ggml-ops.cpp.i
+
+src/ggml-ops.s: src/ggml-ops.cpp.s
+.PHONY : src/ggml-ops.s
+
+# target to generate assembly for a file
+src/ggml-ops.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-ops.dir/build.make CMakeFiles/ggml-ops.dir/src/ggml-ops.cpp.s
+.PHONY : src/ggml-ops.cpp.s
+
 src/ggml.o: src/ggml.cpp.o
 .PHONY : src/ggml.o
 
 # target to build an object file
 src/ggml.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-graph.dir/build.make CMakeFiles/ggml-graph.dir/src/ggml.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/src/ggml.cpp.o
 .PHONY : src/ggml.cpp.o
 
 src/ggml.i: src/ggml.cpp.i
@@ -231,7 +292,7 @@ src/ggml.i: src/ggml.cpp.i
 
 # target to preprocess a source file
 src/ggml.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-graph.dir/build.make CMakeFiles/ggml-graph.dir/src/ggml.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/src/ggml.cpp.i
 .PHONY : src/ggml.cpp.i
 
 src/ggml.s: src/ggml.cpp.s
@@ -239,7 +300,7 @@ src/ggml.s: src/ggml.cpp.s
 
 # target to generate assembly for a file
 src/ggml.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml-graph.dir/build.make CMakeFiles/ggml-graph.dir/src/ggml.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ggml.dir/build.make CMakeFiles/ggml.dir/src/ggml.cpp.s
 .PHONY : src/ggml.cpp.s
 
 tests/test-ggml-graph.o: tests/test-ggml-graph.cpp.o
@@ -275,14 +336,21 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... run-graph"
-	@echo "... run-kernel"
+	@echo "... ggml"
 	@echo "... ggml-graph"
+	@echo "... ggml-kernel"
+	@echo "... ggml-ops"
 	@echo "... kernel"
 	@echo "... test-ggml-graph"
-	@echo "... test-kernel"
 	@echo "... src/ggml-graph.o"
 	@echo "... src/ggml-graph.i"
 	@echo "... src/ggml-graph.s"
+	@echo "... src/ggml-kernel.o"
+	@echo "... src/ggml-kernel.i"
+	@echo "... src/ggml-kernel.s"
+	@echo "... src/ggml-ops.o"
+	@echo "... src/ggml-ops.i"
+	@echo "... src/ggml-ops.s"
 	@echo "... src/ggml.o"
 	@echo "... src/ggml.i"
 	@echo "... src/ggml.s"

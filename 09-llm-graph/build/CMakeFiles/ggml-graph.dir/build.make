@@ -86,33 +86,17 @@ CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/qilei/llama.cpp-101/09-llm-graph/src/ggml-graph.cpp -o CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.s
 
-CMakeFiles/ggml-graph.dir/src/ggml.cpp.o: CMakeFiles/ggml-graph.dir/flags.make
-CMakeFiles/ggml-graph.dir/src/ggml.cpp.o: /Users/qilei/llama.cpp-101/09-llm-graph/src/ggml.cpp
-CMakeFiles/ggml-graph.dir/src/ggml.cpp.o: CMakeFiles/ggml-graph.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/ggml-graph.dir/src/ggml.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/ggml-graph.dir/src/ggml.cpp.o -MF CMakeFiles/ggml-graph.dir/src/ggml.cpp.o.d -o CMakeFiles/ggml-graph.dir/src/ggml.cpp.o -c /Users/qilei/llama.cpp-101/09-llm-graph/src/ggml.cpp
-
-CMakeFiles/ggml-graph.dir/src/ggml.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/ggml-graph.dir/src/ggml.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/qilei/llama.cpp-101/09-llm-graph/src/ggml.cpp > CMakeFiles/ggml-graph.dir/src/ggml.cpp.i
-
-CMakeFiles/ggml-graph.dir/src/ggml.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/ggml-graph.dir/src/ggml.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/qilei/llama.cpp-101/09-llm-graph/src/ggml.cpp -o CMakeFiles/ggml-graph.dir/src/ggml.cpp.s
-
 # Object files for target ggml-graph
 ggml__graph_OBJECTS = \
-"CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.o" \
-"CMakeFiles/ggml-graph.dir/src/ggml.cpp.o"
+"CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.o"
 
 # External object files for target ggml-graph
 ggml__graph_EXTERNAL_OBJECTS =
 
 libggml-graph.a: CMakeFiles/ggml-graph.dir/src/ggml-graph.cpp.o
-libggml-graph.a: CMakeFiles/ggml-graph.dir/src/ggml.cpp.o
 libggml-graph.a: CMakeFiles/ggml-graph.dir/build.make
 libggml-graph.a: CMakeFiles/ggml-graph.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libggml-graph.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libggml-graph.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/ggml-graph.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/ggml-graph.dir/link.txt --verbose=$(VERBOSE)
 

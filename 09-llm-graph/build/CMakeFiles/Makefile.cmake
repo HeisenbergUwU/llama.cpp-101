@@ -116,10 +116,11 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "CMakeFiles/ggml.dir/DependInfo.cmake"
+  "CMakeFiles/ggml-kernel.dir/DependInfo.cmake"
+  "CMakeFiles/ggml-ops.dir/DependInfo.cmake"
   "CMakeFiles/ggml-graph.dir/DependInfo.cmake"
   "CMakeFiles/test-ggml-graph.dir/DependInfo.cmake"
   "CMakeFiles/run-graph.dir/DependInfo.cmake"
   "src/kernel/CMakeFiles/kernel.dir/DependInfo.cmake"
-  "src/kernel/CMakeFiles/test-kernel.dir/DependInfo.cmake"
-  "src/kernel/CMakeFiles/run-kernel.dir/DependInfo.cmake"
   )

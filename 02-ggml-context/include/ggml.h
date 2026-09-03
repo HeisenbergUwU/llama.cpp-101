@@ -87,37 +87,4 @@ namespace ggml
         GGML_OBJECT_TYPE_WORK_BUFFER // 工作缓冲区对象
     };
 
-    // ==== 03 推理（建图遍历）阶段的结构，02 先声明、暂不使用 ====
-    // 推理时候图遍历方向
-    enum ggml_cgraph_eval_order
-    {
-        GGML_CGRAPH_EVAL_ORDER_LEFT_TO_RIGHT = 0,
-        GGML_CGRAPH_EVAL_ORDER_RIGHT_TO_LEFT,
-        GGML_CGRAPH_EVAL_ORDER_COUNT
-    };
-
-    struct ggml_hash_set
-    {
-        size_t size;
-        uint32_t *used;            // whether or not the keys are in use i.e. set
-        struct ggml_tensor **keys; // actual tensors in the set, keys[i] is only defined if ggml_bitset_get(used, i)
-    };
-
-    struct ggml_cgraph
-    {
-        int size;    // 最大容量
-        int n_nodes; // 当前节点数
-        int n_leafs; // 当前叶子数
-
-        struct ggml_tensor **nodes; // 节点：data 会随求值变化
-        struct ggml_tensor **leafs; // 叶子：常量/输入，data 不变
-
-        int32_t *use_counts;                   // 每个 tensor 的引用次数（判"输入是否齐"）
-        struct ggml_hash_set visited_hash_set; // 判重（防环）
-
-        enum ggml_cgraph_eval_order order;
-
-        uint64_t uid;
-    };
-
 } // namespace ggml

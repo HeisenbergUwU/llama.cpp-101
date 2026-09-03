@@ -96,6 +96,9 @@ test__ggml__graph_EXTERNAL_OBJECTS =
 test-ggml-graph: CMakeFiles/test-ggml-graph.dir/tests/test-ggml-graph.cpp.o
 test-ggml-graph: CMakeFiles/test-ggml-graph.dir/build.make
 test-ggml-graph: libggml-graph.a
+test-ggml-graph: libggml-ops.a
+test-ggml-graph: libggml-kernel.a
+test-ggml-graph: libggml.a
 test-ggml-graph: src/kernel/libkernel.a
 test-ggml-graph: CMakeFiles/test-ggml-graph.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/qilei/llama.cpp-101/09-llm-graph/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable test-ggml-graph"

@@ -130,58 +130,6 @@ kernel/fast:
 	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/kernel.dir/build.make src/kernel/CMakeFiles/kernel.dir/build
 .PHONY : kernel/fast
 
-# Convenience name for target.
-src/kernel/CMakeFiles/test-kernel.dir/rule:
-	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/kernel/CMakeFiles/test-kernel.dir/rule
-.PHONY : src/kernel/CMakeFiles/test-kernel.dir/rule
-
-# Convenience name for target.
-test-kernel: src/kernel/CMakeFiles/test-kernel.dir/rule
-.PHONY : test-kernel
-
-# fast build rule for target.
-test-kernel/fast:
-	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/build
-.PHONY : test-kernel/fast
-
-# Convenience name for target.
-src/kernel/CMakeFiles/run-kernel.dir/rule:
-	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/kernel/CMakeFiles/run-kernel.dir/rule
-.PHONY : src/kernel/CMakeFiles/run-kernel.dir/rule
-
-# Convenience name for target.
-run-kernel: src/kernel/CMakeFiles/run-kernel.dir/rule
-.PHONY : run-kernel
-
-# fast build rule for target.
-run-kernel/fast:
-	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/run-kernel.dir/build.make src/kernel/CMakeFiles/run-kernel.dir/build
-.PHONY : run-kernel/fast
-
-__/__/tests/test-kernel.o: __/__/tests/test-kernel.cpp.o
-.PHONY : __/__/tests/test-kernel.o
-
-# target to build an object file
-__/__/tests/test-kernel.cpp.o:
-	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/__/__/tests/test-kernel.cpp.o
-.PHONY : __/__/tests/test-kernel.cpp.o
-
-__/__/tests/test-kernel.i: __/__/tests/test-kernel.cpp.i
-.PHONY : __/__/tests/test-kernel.i
-
-# target to preprocess a source file
-__/__/tests/test-kernel.cpp.i:
-	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/__/__/tests/test-kernel.cpp.i
-.PHONY : __/__/tests/test-kernel.cpp.i
-
-__/__/tests/test-kernel.s: __/__/tests/test-kernel.cpp.s
-.PHONY : __/__/tests/test-kernel.s
-
-# target to generate assembly for a file
-__/__/tests/test-kernel.cpp.s:
-	cd /Users/qilei/llama.cpp-101/09-llm-graph/build && $(MAKE) $(MAKESILENT) -f src/kernel/CMakeFiles/test-kernel.dir/build.make src/kernel/CMakeFiles/test-kernel.dir/__/__/tests/test-kernel.cpp.s
-.PHONY : __/__/tests/test-kernel.cpp.s
-
 cpu/kernel.o: cpu/kernel.cpp.o
 .PHONY : cpu/kernel.o
 
@@ -214,12 +162,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... run-kernel"
 	@echo "... kernel"
-	@echo "... test-kernel"
-	@echo "... __/__/tests/test-kernel.o"
-	@echo "... __/__/tests/test-kernel.i"
-	@echo "... __/__/tests/test-kernel.s"
 	@echo "... cpu/kernel.o"
 	@echo "... cpu/kernel.i"
 	@echo "... cpu/kernel.s"
