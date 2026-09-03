@@ -12,22 +12,23 @@ llama.cpp 源码体量过大——几十种量化、多后端（CPU/CUDA/Metal/V
 
 最新分章粒度以 [`ROADMAP.md`](ROADMAP.md) 为准。当前各章目录：
 
-| 章 | 目录 | 主题 | 状态 |
-|----|------|------|:----:|
-| 00 | `00-what-is-llama-cpp/` | llama.cpp 是什么 | ✅ |
-| 01 | `01-load-and-check-gguf/` | 加载并校验 GGUF（裸解析器） | ✅ |
-| 02 | `02-ggml-context/` | 迷你 ggml 数据结构层 | ✅ |
-| 03 | `03-ggml-build-context/` | 迷你 ggml 加载层（池子分配函数） | ✅ |
-| 04 | `04-aggregate-functions/` | 文件 IO 封装层（llama_file + llama_mmap） | ✅ |
-| 05 | `05-llama-model-load/` | 建 llama_model 聚合对象 + 加载权重 | ✅ |
-| 06 | `06-llama-model-assembly/` | 模型语义（HParams + Layer/Model 组装） | ✅ |
-| 07 | `07-llama-model-vocab/` | 词表 Vocab（tokenize / detokenize） | ✅ |
-| 08 | `08-llama-model-kernel/` | 算子内核（kernel 层） | 🟡 进行中 |
-| 09 | `09-llm-graph/` | ggml 计算图设施 | 🟡 进行中 |
-| 10 | `10-llama-model-graph/` | 整体模型图（llama 前向建图） | 🟡 进行中 |
-| 11 | `11-llama-model-run-it!/` | 自回归采样 + 跑起来 | 🟡 进行中 |
+| 章  | 目录                       | 主题                                      | 状态 |
+| --- | -------------------------- | ----------------------------------------- | :--: |
+| 00  | `00-what-is-llama-cpp/`    | llama.cpp 是什么                          |  ✅  |
+| 01  | `01-load-and-check-gguf/`  | 加载并校验 GGUF（裸解析器）               |  ✅  |
+| 02  | `02-ggml-context/`         | 迷你 ggml 数据结构层                      |  ✅  |
+| 03  | `03-ggml-build-context/`   | 迷你 ggml 加载层（池子分配函数）          |  ✅  |
+| 04  | `04-aggregate-functions/`  | 文件 IO 封装层（llama_file + llama_mmap） |  ✅  |
+| 05  | `05-llama-model-load/`     | 建 llama_model 聚合对象 + 加载权重        |  ✅  |
+| 06  | `06-llama-model-assembly/` | 模型语义（HParams + Layer/Model 组装）    |  ✅  |
+| 07  | `07-llama-model-vocab/`    | 词表 Vocab（tokenize / detokenize）       |  ✅  |
+| 08  | `08-llama-model-kernel/`   | 算子内核（kernel 层）                     |  ✅  |
+| 09  | `09-llm-graph/`            | ggml 计算图设施                           |  ✅  |
+| 10  | `10-llama-model-graph/`    | 整体模型图（llama 前向建图）              |  ✅  |
+| 11  | `11-llama-model-run-it!/`  | 自回归采样 + 跑起来                       |  ✅  |
+| 12  | —                        | 算子优化（多线程）                        | ⬜ 计划中 |
 
-> `08+` 的 server-first 快路径见 `ROADMAP.md`（算子内核 → 计算图 → 整体模型图 → 采样跑起来 → 最小 CPU server；KV cache / batch 延后为优化章节，逐算子深挖在 15+）。
+> 各章的概念与依赖顺序见 `ROADMAP.md`；当前已规划到 **12 章「算子优化（多线程）」**（⬜ 计划中）。
 
 ## 快速开始
 
@@ -100,4 +101,3 @@ llama.cpp-101/
 本项目以 **MIT 协议**开源，详见 [`LICENSE`](LICENSE)。
 
 > 本项目为教学用途，代码为从零实现、对照上游理解；参考的 `llama.cpp` 亦以 **MIT** 协议开源（见其仓库 LICENSE）。各章节标注的上游源码位置仅供学习对照，不在本项目内复制其代码。
-
